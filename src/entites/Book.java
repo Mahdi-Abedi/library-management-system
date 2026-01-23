@@ -98,6 +98,14 @@ public class Book {
 
     @Override
     public String toString() {
-        return title + " - " + author + " - " + isbn;
+        return new StringBuilder("Book Details:")
+                .append("\n\tTitle: ").append(title)
+                .append("\n\tAuthor: ").append(author)
+                .append("\n\tISBN: ").append(isbn)
+                .append("\n\tStatus: ").append(status)
+                .append("\n\tAvailable: ").append(isAvailable)
+                .append("\n\tPublication Year: ").append(publicationYear)
+                .append("\n\tPages: ").append(pageCount)
+                .toString();
     }
 }
