@@ -1,6 +1,5 @@
 package entites;
 
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
@@ -8,7 +7,7 @@ import java.time.temporal.ChronoUnit;
 
 public class BorrowRecord {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    public static final int MAX_BORROW_DAY = 14;
+    public static final int DEFAULT_BORROW_DAY = 14;
     public static final double DAILY_LATE_PENALTY = 500D;
 
     private Book book;
@@ -21,7 +20,7 @@ public class BorrowRecord {
         this.book = book;
         this.member = member;
         this.borrowDate = LocalDate.now();
-        this.dueDate = LocalDate.now().plusDays(MAX_BORROW_DAY);
+        this.dueDate = LocalDate.now().plusDays(DEFAULT_BORROW_DAY);
         returnDate = null;
 
         book.borrowBook();

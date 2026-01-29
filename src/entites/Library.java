@@ -1,11 +1,12 @@
 package entites;
 
-import enums.BookStatus;
+import exceptions.BookNotFoundException;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class Library {
@@ -60,7 +61,8 @@ public class Library {
             return null;
 
         return books.stream()
-                .filter(book -> book.getTitle().equals(title) && book.getAuthor().equals(author))
+                .filter(book -> book.getTitle().toLowerCase().contains(title.toLowerCase()) &&
+                        book.getAuthor().toLowerCase().contains(author.toLowerCase()))
                 .findFirst().orElse(null);
     }
 
@@ -72,13 +74,24 @@ public class Library {
                 .collect(Collectors.toList());
     }
 
-    public Book findBookByIsbn(String isbn) {
+    public Optional<Book> findBookByIsbnOptional(String isbn) {
         if (books == null || books.isEmpty() || isbn == null || isbn.isBlank())
-            return null;
+            return Optional.empty();
+
         return books.stream()
                 .filter(book -> book.getIsbn().equals(isbn))
-                .findFirst().orElse(null);
+                .findFirst();
 
+    }
+
+    public Optional<BorrowRecord> findActiveBorrowRecord(String isbn) {
+        if (borrowRecords == null || borrowRecords.isEmpty() || isbn == null || isbn.isBlank())
+            return Optional.empty();
+
+        return borrowRecords.stream()
+                .filter(borrowRecord -> borrowRecord.getBook().getIsbn().equals(isbn) &&
+                        borrowRecord.getReturnDate() == null)
+                .findFirst();
     }
 
     public List<Book> getAvailableBooks() {
@@ -135,6 +148,11 @@ public class Library {
                 .collect(Collectors.toList());
     }
 
+    public Book getBookByIsbnOrThrow(String isbn) {
+        return findBookByIsbnOptional(isbn)
+                .orElseThrow(() -> new BookNotFoundException("Book with ISBN " + isbn + " not found"));
+    }
+
     public Book[] getBooksAsArray() {
         return books.toArray(new Book[0]);
     }
@@ -143,32 +161,102 @@ public class Library {
         if (isbn == null || isbn.isBlank() || member == null)
             return null;
 
-        Book book = findBookByIsbn(isbn);
-        if (book == null)
+        Optional<Book> bookOptional = findBookByIsbnOptional(isbn);
+        if (bookOptional.isEmpty() || !bookOptional.get().getIsAvailable())
             return null;
 
-        BorrowRecord borrowRecord = new BorrowRecord(book, member);
+        BorrowRecord borrowRecord = new BorrowRecord(bookOptional.get(), member);
         borrowRecords.add(borrowRecord);
 
         return borrowRecord;
+    }
+
+    public BorrowRecord borrowBook(String isbn) {
+        if (members.isEmpty())
+            throw new IllegalStateException("No members available");
+
+        return borrowBook(isbn, members.getFirst());
+    }
+
+    public BorrowRecord borrowBook(Book book, Member member) {
+        if (book == null)
+            throw new IllegalArgumentException("Book cannot be null");
+        return borrowBook(book.getIsbn(), member);
+
+    }
+
+    public BorrowRecord borrowBook(String isbn, Member member, int days) {
+        if (isbn == null || isbn.isBlank() || member == null)
+            return null;
+
+        if (days <= 0)
+            throw new IllegalArgumentException("Borrow days must be positive");
+
+        if (days > 30)
+            throw new IllegalArgumentException("Maximum borrow period is 30 days");
+
+
+        Optional<Book> bookOptional = findBookByIsbnOptional(isbn);
+        if (bookOptional.isEmpty() || !bookOptional.get().getIsAvailable())
+            return null;
+
+        BorrowRecord borrowRecord = new BorrowRecord(bookOptional.get(), member);
+        borrowRecord.setDueDate(LocalDate.now().plusDays(days));
+        borrowRecords.add(borrowRecord);
+
+        return borrowRecord;
+
+    }
+
+    public int borrowMultipleBooks(Member member, String... isbns) {
+        if (member == null || isbns == null || isbns.length == 0)
+            return 0;
+        int total = 0;
+        for (String isbn : isbns) {
+            BorrowRecord borrowRecord = borrowBook(isbn, member);
+            if (borrowRecord != null)
+                total++;
+        }
+
+        return total;
+    }
+
+    public int borrowMultipleBooks(Member member, Book... books) {
+        if (member == null || books == null || books.length == 0)
+            return 0;
+        int total = 0;
+        for (Book book : books) {
+            BorrowRecord borrowRecord = borrowBook(book, member);
+            if (borrowRecord != null)
+                total++;
+        }
+
+        return total;
     }
 
     public boolean returnBook(String isbn) {
         if (isbn == null || isbn.isBlank())
             return false;
 
-        Book book = findBookByIsbn(isbn);
-        if (book == null)
-            return false;
-
-        return borrowRecords.stream()
-                .filter(borrowRecord -> borrowRecord.getBook().getIsbn().equals(isbn) && borrowRecord.getReturnDate() == null)
-                .findFirst()
+        return findActiveBorrowRecord(isbn)
                 .map(borrowRecord -> {
                     borrowRecord.returnBook();
                     return true;
                 })
                 .orElse(false);
+    }
+
+    public int returnMultipleBooks(String... isbns) {
+        if (isbns == null || isbns.length == 0)
+            return 0;
+
+        int total = 0;
+        for (String isbn : isbns) {
+            if (returnBook(isbn))
+                total++;
+        }
+
+        return total;
     }
 
 }

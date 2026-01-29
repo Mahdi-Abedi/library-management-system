@@ -1,7 +1,10 @@
-import entites.*;
+import entites.Book;
+import entites.BorrowRecord;
+import entites.Library;
+import entites.Member;
 import enums.MemberStatus;
 
-import java.time.LocalDate;
+import java.util.Optional;
 
 public class Main {
     public static void main(String[] args) {
@@ -22,13 +25,13 @@ public class Main {
         );
         System.out.println("Added " + added + " books (duplicates skipped)\n");
 
-        Book effectiveJava = library.findBookByIsbn("978-0134685991");
+        Book effectiveJava = library.getBookByIsbnOrThrow("978-0134685991");
         if (effectiveJava != null) {
             effectiveJava.setPublicationYear(2018);
             effectiveJava.setPageCount(416);
         }
 
-        Book springInAction = library.findBookByIsbn("978-1617298299");
+        Book springInAction = library.getBookByIsbnOrThrow("978-1617298299");
         if (springInAction != null) {
             springInAction.setPublicationYear(2021);
             springInAction.setPageCount(592);
@@ -84,7 +87,7 @@ public class Main {
         System.out.println("\nUpdated availability: " + effectiveJava.getIsAvailable());
 
         System.out.println("\n=== ISBN Lookup ===");
-        Book found = library.findBookByIsbn("978-0596009205");
-        System.out.println("Found by ISBN: " + (found != null ? found.getTitle() : "Not found"));
+        Optional<Book> found = library.findBookByIsbnOptional("978-0596009205");
+        System.out.printf("Found by ISBN: %s%n", found.isEmpty() ? found.get().getTitle() : "Not found");
     }
 }
