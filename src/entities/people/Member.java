@@ -1,4 +1,4 @@
-package entites;
+package entities.people;
 
 import enums.MemberStatus;
 

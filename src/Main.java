@@ -1,93 +1,103 @@
-import entites.Book;
-import entites.BorrowRecord;
-import entites.Library;
-import entites.Member;
-import enums.MemberStatus;
+import entities.Library;
+import entities.items.Book;
+import entities.items.LibraryItem;
+import entities.items.Magazine;
+import entities.people.Member;
+import enums.LibraryItemType;
 
-import java.util.Optional;
+import java.time.LocalDate;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("=== LIBRARY MANAGEMENT SYSTEM ===\n");
-
+        System.out.println("=== FINAL TEST - CHAPTER 6: CLASS DESIGN ===\n");
+        
         Library library = new Library();
 
-        System.out.println("Adding books to library...");
-        int added = library.addMultipleBooks(
-                new Book("978-0134685991", "Effective Java", "Joshua Bloch"),
-                new Book("978-1617298299", "Spring in Action", "Craig Walls"),
-                new Book("978-1492056271", "Java: The Complete Reference", "Herbert Schildt"),
-                new Book("978-0596009205", "Head First Java", "Kathy Sierra"),
-                new Book("978-0132350884", "Clean Code", "Robert C. Martin"),
-                new Book("978-0201633610", "Design Patterns", "Erich Gamma"),
-                new Book("978-0321356680", "Effective Java 2nd Edition", "Joshua Bloch"),
-                new Book("978-0134685991", "Effective Java", "Joshua Bloch") // تکراری
-        );
-        System.out.println("Added " + added + " books (duplicates skipped)\n");
+        // ۱. ایجاد آیتم‌های مختلف
+        System.out.println("1. Creating different library items...");
+        Book book = new Book("978-0134685991", "Effective Java", "Joshua Bloch");
+        book.setPageCount(416);
+        book.setPublicationYear(2018);
 
-        Book effectiveJava = library.getBookByIsbnOrThrow("978-0134685991");
-        if (effectiveJava != null) {
-            effectiveJava.setPublicationYear(2018);
-            effectiveJava.setPageCount(416);
+        Magazine magazine = new Magazine("ISSUE-2024-01", "Java Monthly",
+                LocalDate.of(2024, 1, 15));
+        magazine.setPublisher("Java Publications");
+
+        // ۲. اضافه کردن با polymorphism
+        System.out.println("\n2. Adding items polymorphically...");
+        library.addItem(book);      // Book is-a LibraryItem
+        library.addItem(magazine);  // Magazine is-a LibraryItem
+
+        // ۳. تست inheritance
+        System.out.println("\n3. Testing inheritance hierarchy:");
+        System.out.println("Book instanceof LibraryItem: " + (book instanceof LibraryItem));
+        System.out.println("Magazine instanceof LibraryItem: " + (magazine instanceof LibraryItem));
+        System.out.println("Book instanceof Object: " + (book instanceof Object));
+
+        // ۴. تست polymorphism
+        System.out.println("\n4. Testing polymorphism:");
+        List<LibraryItem> items = library.getAllItems();
+        for (LibraryItem item : items) {
+            System.out.println("- " + item.getTitle() +
+                    " | Actual type: " + item.getClass().getSimpleName() +
+                    " | Item type: " + item.getItemType());
         }
 
-        Book springInAction = library.getBookByIsbnOrThrow("978-1617298299");
-        if (springInAction != null) {
-            springInAction.setPublicationYear(2021);
-            springInAction.setPageCount(592);
+        // ۵. تست interface implementation
+        System.out.println("\n5. Testing interface implementation:");
+        if (book instanceof interfaces.LoanPolicy bookPolicy) {
+            System.out.println("Book loan policy:");
+            System.out.println("  Max days: " + bookPolicy.getMaxLoanDays());
+            System.out.println("  Daily fine: " + bookPolicy.getDailyFine());
+            System.out.println("  Renewable: " + bookPolicy.isRenewable());
         }
 
-        Member ali = new Member(101, "Ali Rezaei", "ali@example.com");
-        ali.setPhoneNumber("09123456789");
-
-        Member sara = new Member(102, "Sara Mohammadi", "sara@example.com");
-        sara.setPhoneNumber("09129876543");
-        sara.setStatus(MemberStatus.ACTIVE);
-
-        library.addMember(ali);
-        library.addMember(sara);
-
-        System.out.println("=== Borrowing Books ===");
-        try {
-            BorrowRecord record1 = library.borrowBook("978-0134685991", ali);
-            System.out.println("Borrow record created:");
-            System.out.println(record1);
-
-            BorrowRecord record2 = library.borrowBook("978-1617298299", sara);
-            System.out.println("\nSecond borrow record:");
-            System.out.println(record2);
-        } catch (Exception e) {
-            System.out.println("Error: " + e.getMessage());
+        if (magazine instanceof interfaces.LoanPolicy magPolicy) {
+            System.out.println("Magazine loan policy:");
+            System.out.println("  Max days: " + magPolicy.getMaxLoanDays());
+            System.out.println("  Daily fine: " + magPolicy.getDailyFine());
+            System.out.println("  Renewable: " + magPolicy.isRenewable());
         }
 
-        System.out.println("\n=== Search Operations ===");
-        System.out.println("Search for 'Java':");
-        library.searchBooks("Java").forEach(book ->
-                System.out.println("  - " + book.getTitle())
+        // ۶. تست abstract method
+        System.out.println("\n6. Testing abstract method implementation:");
+        items.forEach(item -> {
+            System.out.println(item.getTitle() + " -> " + item.getItemType());
+        });
+
+        // ۷. تعداد آیتم‌ها بر اساس نوع
+        System.out.println("\n7. Item count by type:");
+        for (LibraryItemType type : LibraryItemType.values()) {
+            long count = library.countItemsByType(type);
+            System.out.println(type + ": " + count);
+        }
+
+        // ۸. تست loanable items
+        System.out.println("\n8. Loanable items (available + implements LoanPolicy):");
+        List<LibraryItem> loanable = library.getLoanableItems();
+        System.out.println("Count: " + loanable.size());
+        loanable.forEach(item ->
+                System.out.println("  - " + item.getTitle())
         );
 
-        System.out.println("\nSearch for 'Joshua':");
-        library.searchBooks("Joshua").forEach(book ->
-                System.out.println("  - " + book.getTitle())
-        );
+        // ۹. ایجاد یک عضو و تست امانت
+        System.out.println("\n9. Testing borrowing with polymorphism:");
+        Member member = new Member(101, "Ali Rezaei", "ali@example.com");
+        library.addMember(member);
 
-        System.out.println("\n=== Library Report ===");
+        // کتاب را امانت بده
+        if (book.getAvailable()) {
+            var record = library.borrowItem(book.getId(), member);
+            System.out.println("Borrowed: " + book.getTitle());
+            System.out.println("Due date: " + record.getDueDate());
+            System.out.println("Book available now: " + book.getAvailable());
+        }
+
+        // ۱۰. گزارش نهایی
+        System.out.println("\n10. Final library report:");
         System.out.println(library.generateLibraryReport());
 
-        System.out.println("=== Array Conversion ===");
-        Book[] bookArray = library.getBooksAsArray();
-        System.out.println("Converted to array with " + bookArray.length + " elements");
-
-        System.out.println("\n=== Book Details (new toString) ===");
-        System.out.println(effectiveJava);
-
-        System.out.println("=== Returning a Book ===");
-        boolean returned = library.returnBook("978-0134685991");
-        System.out.println("Book returned: " + returned);
-        System.out.println("\nUpdated availability: " + effectiveJava.getIsAvailable());
-
-        System.out.println("\n=== ISBN Lookup ===");
-        Optional<Book> found = library.findBookByIsbnOptional("978-0596009205");
-        System.out.printf("Found by ISBN: %s%n", found.isEmpty() ? found.get().getTitle() : "Not found");
+        System.out.println("\n✅ CHAPTER 6 COMPLETED SUCCESSFULLY!");
     }
 }

@@ -1,4 +1,7 @@
-package entites;
+package entities.transactions;
+
+import entities.items.LibraryItem;
+import entities.people.Member;
 
 import java.time.LocalDate;
 import java.time.Period;
@@ -10,28 +13,28 @@ public class BorrowRecord {
     public static final int DEFAULT_BORROW_DAY = 14;
     public static final double DAILY_LATE_PENALTY = 500D;
 
-    private Book book;
+    private LibraryItem item;
     private Member member;
     private LocalDate borrowDate;
     private LocalDate dueDate;
     private LocalDate returnDate;
 
-    public BorrowRecord(Book book, Member member) {
-        this.book = book;
+    public BorrowRecord(LibraryItem item, Member member) {
+        this.item = item;
         this.member = member;
         this.borrowDate = LocalDate.now();
         this.dueDate = LocalDate.now().plusDays(DEFAULT_BORROW_DAY);
         returnDate = null;
 
-        book.borrowBook();
+        item.borrowItem();
     }
 
-    public Book getBook() {
-        return book;
+    public LibraryItem getItem() {
+        return item;
     }
 
-    public void setBook(Book book) {
-        this.book = book;
+    public void setItem(LibraryItem item) {
+        this.item = item;
     }
 
     public Member getMember() {
@@ -66,12 +69,12 @@ public class BorrowRecord {
         this.returnDate = returnDate;
     }
 
-    public void returnBook() {
+    public void returnItem() {
         if (returnDate != null) {
             throw new IllegalStateException("Book already returned");
         }
         returnDate = LocalDate.now();
-        book.returnBook();
+        item.returnItem();
     }
 
     public boolean isOverdue() {
@@ -104,7 +107,7 @@ public class BorrowRecord {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Borrow Record:\n");
-        sb.append("  Book: ").append(book.getTitle()).append("\n");
+        sb.append("  Book: ").append(item.getTitle()).append("\n");
         sb.append("  Member: ").append(member.getName()).append("\n");
         sb.append("  Borrowed: ").append(borrowDate.format(FORMATTER)).append("\n");
         sb.append("  Due: ").append(dueDate.format(FORMATTER)).append("\n");

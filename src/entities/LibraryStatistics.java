@@ -1,4 +1,6 @@
-package entites;
+package entities;
+
+import entities.items.Book;
 
 import java.util.List;
 

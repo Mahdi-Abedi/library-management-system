@@ -1,34 +1,26 @@
-package entites;
+package entities.items;
 
 import enums.BookStatus;
+import enums.LibraryItemType;
+import interfaces.LoanPolicy;
+import interfaces.ReservationPolicy;
 
-public class Book {
+public class Book extends LibraryItem implements LoanPolicy, ReservationPolicy {
     private String isbn;
-    private String title;
     private String author;
-    private boolean isAvailable;
     private int publicationYear;
     private int pageCount;
     private BookStatus status;
 
     public Book(String isbn, String title, String author) {
+        super(LibraryItem.generateId(LibraryItemType.BOOK, isbn), title);
         this.isbn = isbn;
-        this.title = title;
         this.author = author;
-        isAvailable = true;
         this.status = BookStatus.AVAILABLE;
     }
 
     public String getIsbn() {
         return isbn;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
     }
 
     public String getAuthor() {
@@ -37,14 +29,6 @@ public class Book {
 
     public void setAuthor(String author) {
         this.author = author;
-    }
-
-    public boolean getIsAvailable() {
-        return isAvailable;
-    }
-
-    public void setIsAvailable(boolean available) {
-        isAvailable = available;
     }
 
     public int getPublicationYear() {
@@ -72,12 +56,12 @@ public class Book {
     }
 
     public void borrowBook() {
-        isAvailable = false;
+        borrowItem();
         status = BookStatus.BORROWED;
     }
 
     public void returnBook() {
-        isAvailable = true;
+        returnItem();
         status = BookStatus.AVAILABLE;
     }
 
@@ -97,13 +81,48 @@ public class Book {
     }
 
     @Override
+    public LibraryItemType getItemType() {
+        return LibraryItemType.BOOK;
+    }
+
+    @Override
+    public int getMaxLoanDays() {
+        return 14;
+    }
+
+    @Override
+    public double getDailyFine() {
+        return 500d;
+    }
+
+    @Override
+    public boolean isRenewable() {
+        return true;
+    }
+
+    @Override
+    public int getMaxRenewals() {
+        return 1;
+    }
+
+    @Override
+    public int getMaxReservationDays() {
+        return 3;
+    }
+
+    @Override
+    public int getMaxSimultaneousReservations() {
+        return 2;
+    }
+
+    @Override
     public String toString() {
         return new StringBuilder("Book Details:")
-                .append("\n\tTitle: ").append(title)
+                .append("\n\tTitle: ").append(getTitle())
                 .append("\n\tAuthor: ").append(author)
                 .append("\n\tISBN: ").append(isbn)
                 .append("\n\tStatus: ").append(status)
-                .append("\n\tAvailable: ").append(isAvailable)
+                .append("\n\tAvailable: ").append(getAvailable())
                 .append("\n\tPublication Year: ").append(publicationYear)
                 .append("\n\tPages: ").append(pageCount)
                 .toString();
