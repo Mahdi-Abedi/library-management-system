@@ -9,10 +9,26 @@ public final class DVD extends LibraryItem implements LoanPolicy, ReservationPol
     private String director;
     private int durationMinutes;
     private MovieGenre genre;
+    private int releaseYear;
+    private String studio;
+    private double imdbRating;
 
     public DVD(String id, String title, String director) {
-        super(generateId(LibraryItemType.DVD, id), title);
+        super(id, title);
         this.director = director;
+        this.genre = MovieGenre.EDUCATIONAL;
+    }
+
+    public DVD(String id, String title, String director, MovieGenre genre, int duration) {
+        super(id, title);
+        this.director = director;
+        this.genre = genre;
+        this.durationMinutes = duration;
+    }
+
+    @Override
+    public LibraryItemType getItemType() {
+        return LibraryItemType.DVD;
     }
 
     public String getDirector() {
@@ -39,14 +55,58 @@ public final class DVD extends LibraryItem implements LoanPolicy, ReservationPol
         this.genre = genre;
     }
 
+    public int getReleaseYear() {
+        return releaseYear;
+    }
+
+    public void setReleaseYear(int releaseYear) {
+        this.releaseYear = releaseYear;
+    }
+
+    public String getStudio() {
+        return studio;
+    }
+
+    public void setStudio(String studio) {
+        this.studio = studio;
+    }
+
+    public double getImdbRating() {
+        return imdbRating;
+    }
+
+    public void setImdbRating(double imdbRating) {
+        this.imdbRating = imdbRating;
+    }
+
+    public String getDurationFormatted() {
+        int hours = durationMinutes / 60;
+        int minutes = durationMinutes % 60;
+        return String.format("%d hr %d min", hours, minutes);
+    }
+
+    public boolean isFamilyFriendly() {
+        return genre != null && genre.isFamilyFriendly();
+    }
+
+    public boolean isAgeAppropriateFor(int age) {
+        return genre != null && genre.isAgeAppropriate(age);
+    }
+
     @Override
     public int getMaxLoanDays() {
+        if (genre == MovieGenre.EDUCATIONAL || genre == MovieGenre.DOCUMENTARY) {
+            return 28;
+        }
         return 21;
     }
 
     @Override
     public double getDailyFine() {
-        return 1000;
+        if (genre == MovieGenre.EDUCATIONAL) {
+            return 2000.0;
+        }
+        return 1000.0;
     }
 
     @Override
@@ -61,7 +121,7 @@ public final class DVD extends LibraryItem implements LoanPolicy, ReservationPol
 
     @Override
     public int getMaxReservationDays() {
-        return 5;
+        return 7;
     }
 
     @Override
@@ -74,13 +134,12 @@ public final class DVD extends LibraryItem implements LoanPolicy, ReservationPol
         return new StringBuilder("DVD Details:")
                 .append("\n\tTitle: ").append(getTitle())
                 .append("\n\tDirector: ").append(director)
-                .append("\n\tDuration: ").append(durationMinutes).append(" mins")
+                .append("\n\tGenre: ").append(genre != null ? genre.getDisplayName() : "Not specified")
+                .append("\n\tDuration: ").append(getDurationFormatted())
+                .append("\n\tRelease Year: ").append(releaseYear > 0 ? releaseYear : "Unknown")
+                .append("\n\tAge Rating: ").append(genre != null ? genre.getAgeRating() : "Not rated")
                 .append("\n\tAvailable: ").append(getAvailable())
+                .append("\n\tFamily Friendly: ").append(isFamilyFriendly())
                 .toString();
-    }
-
-    @Override
-    public LibraryItemType getItemType() {
-        return LibraryItemType.DVD;
     }
 }
