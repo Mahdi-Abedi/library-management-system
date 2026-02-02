@@ -6,7 +6,7 @@ import interfaces.ReservationPolicy;
 
 import java.time.LocalDate;
 
-public class Magazine extends LibraryItem implements LoanPolicy, ReservationPolicy {
+public final class Magazine extends LibraryItem implements LoanPolicy, ReservationPolicy {
     private String issueNumber;
     private LocalDate publicationDate;
     private String publisher;

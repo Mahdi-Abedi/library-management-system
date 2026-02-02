@@ -1,103 +1,149 @@
 import entities.Library;
-import entities.items.Book;
-import entities.items.LibraryItem;
-import entities.items.Magazine;
+import entities.items.*;
 import entities.people.Member;
+import entities.transactions.BorrowRecord;
 import enums.LibraryItemType;
+import enums.MemberStatus;
+import enums.MovieGenre;
 
 import java.time.LocalDate;
 import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("=== FINAL TEST - CHAPTER 6: CLASS DESIGN ===\n");
-        
+        System.out.println("=== LIBRARY MANAGEMENT SYSTEM - CHAPTER 7 DEMO ===\n");
+
+        // ۱. ایجاد کتابخانه
         Library library = new Library();
 
-        // ۱. ایجاد آیتم‌های مختلف
-        System.out.println("1. Creating different library items...");
-        Book book = new Book("978-0134685991", "Effective Java", "Joshua Bloch");
-        book.setPageCount(416);
-        book.setPublicationYear(2018);
+        System.out.println("1. Creating library items...");
 
-        Magazine magazine = new Magazine("ISSUE-2024-01", "Java Monthly",
+        LibraryItem book = new Book("978-0134685991", "Effective Java", "Joshua Bloch");
+        ((Book) book).setPublicationYear(2018);
+        ((Book) book).setPageCount(416);
+
+        LibraryItem magazine = new Magazine("JAVA-2024-01", "Java Monthly",
                 LocalDate.of(2024, 1, 15));
-        magazine.setPublisher("Java Publications");
+        ((Magazine) magazine).setPublisher("Java Publications Inc.");
 
-        // ۲. اضافه کردن با polymorphism
-        System.out.println("\n2. Adding items polymorphically...");
-        library.addItem(book);      // Book is-a LibraryItem
-        library.addItem(magazine);  // Magazine is-a LibraryItem
+        LibraryItem dvd = new DVD("DVD-001", "Java Design Patterns", "John Doe");
+        ((DVD) dvd).setDurationMinutes(120);
+        ((DVD) dvd).setGenre(MovieGenre.EDUCATIONAL);
 
-        // ۳. تست inheritance
-        System.out.println("\n3. Testing inheritance hierarchy:");
-        System.out.println("Book instanceof LibraryItem: " + (book instanceof LibraryItem));
-        System.out.println("Magazine instanceof LibraryItem: " + (magazine instanceof LibraryItem));
-        System.out.println("Book instanceof Object: " + (book instanceof Object));
+        LibraryItem referenceBook = new ReferenceBook("REF-001", "Java Language Specification",
+                "Programming Languages");
 
-        // ۴. تست polymorphism
-        System.out.println("\n4. Testing polymorphism:");
-        List<LibraryItem> items = library.getAllItems();
-        for (LibraryItem item : items) {
-            System.out.println("- " + item.getTitle() +
-                    " | Actual type: " + item.getClass().getSimpleName() +
-                    " | Item type: " + item.getItemType());
+        library.addItem(book);
+        library.addItem(magazine);
+        library.addItem(dvd);
+        library.addItem(referenceBook);
+
+        System.out.println("\n2. Creating members...");
+        Member ali = new Member(101, "Ali Rezaei", "ali@example.com");
+        ali.setPhoneNumber("09123456789");
+        ali.setStatus(MemberStatus.ACTIVE);
+
+        Member sara = new Member(102, "Sara Mohammadi", "sara@example.com");
+        sara.setStatus(MemberStatus.ACTIVE);
+
+        library.addMember(ali);
+        library.addMember(sara);
+
+        System.out.println("\n3. Testing Records...");
+        var stats = library.getStats().generateStatistics();
+        System.out.println("Library Statistics:");
+        System.out.println("  Total items: " + stats.totalItems());
+        System.out.println("  Available: " + stats.availableItems());
+        System.out.println("  Utilization: " + stats.getUtilizationPercentage() + "%");
+
+        System.out.println("\n4. Testing Sealed Classes...");
+        System.out.println("Book is a LibraryItem: " + (book instanceof LibraryItem));
+        System.out.println("Magazine is a LibraryItem: " + (magazine instanceof LibraryItem));
+        System.out.println("DVD is a LibraryItem: " + (dvd instanceof LibraryItem));
+        System.out.println("ReferenceBook is a LibraryItem: " + (referenceBook instanceof LibraryItem));
+
+        System.out.println("\n5. Testing canBeBorrowed() method...");
+        System.out.println("Book can be borrowed: " + book.canBeBorrowed());
+        System.out.println("Magazine can be borrowed: " + magazine.canBeBorrowed());
+        System.out.println("DVD can be borrowed: " + dvd.canBeBorrowed());
+        System.out.println("ReferenceBook can be borrowed: " + referenceBook.canBeBorrowed());
+
+        System.out.println("\n6. Testing Enhanced Enums...");
+        for (LibraryItemType type : LibraryItemType.values()) {
+            System.out.println(type.getDisplayName() + ": " + type.getLoanInfo());
         }
 
-        // ۵. تست interface implementation
-        System.out.println("\n5. Testing interface implementation:");
-        if (book instanceof interfaces.LoanPolicy bookPolicy) {
-            System.out.println("Book loan policy:");
-            System.out.println("  Max days: " + bookPolicy.getMaxLoanDays());
-            System.out.println("  Daily fine: " + bookPolicy.getDailyFine());
-            System.out.println("  Renewable: " + bookPolicy.isRenewable());
+        System.out.println("\n7. Testing Borrowing with BorrowingService...");
+        if (book.canBeBorrowed()) {
+            var borrowResult = library.borrowItem(book.getId(), ali);
+            if (borrowResult.isSuccess()) {
+                System.out.println("Successfully borrowed: " + book.getTitle());
+                BorrowRecord record = borrowResult.getRecord();
+                System.out.println("Due date: " + record.getDueDate());
+
+                // تست Local Class در BorrowRecord
+                System.out.println("\n8. Testing Local Class (ReportFormatter)...");
+                System.out.println(record.generateReport());
+            } else {
+                System.out.println("Failed to borrow: " + borrowResult.getMessage());
+            }
         }
 
-        if (magazine instanceof interfaces.LoanPolicy magPolicy) {
-            System.out.println("Magazine loan policy:");
-            System.out.println("  Max days: " + magPolicy.getMaxLoanDays());
-            System.out.println("  Daily fine: " + magPolicy.getDailyFine());
-            System.out.println("  Renewable: " + magPolicy.isRenewable());
-        }
+        System.out.println("\n9. Testing Inner Class (Library.Statistics)...");
+        var libraryStats = library.getStats();
+        System.out.println("Total items: " + libraryStats.getTotalItems());
+        System.out.println("Available items: " + libraryStats.getAvailableItems());
+        System.out.println("Loanable items: " + libraryStats.getLoanableItems());
 
-        // ۶. تست abstract method
-        System.out.println("\n6. Testing abstract method implementation:");
-        items.forEach(item -> {
-            System.out.println(item.getTitle() + " -> " + item.getItemType());
+        System.out.println("Items by type:");
+        libraryStats.getCountByType().forEach((type, count) -> {
+            System.out.println("  " + type.getDisplayName() + ": " + count);
         });
 
-        // ۷. تعداد آیتم‌ها بر اساس نوع
-        System.out.println("\n7. Item count by type:");
-        for (LibraryItemType type : LibraryItemType.values()) {
-            long count = library.countItemsByType(type);
-            System.out.println(type + ": " + count);
+        System.out.println("\n10. Testing search and filter...");
+        List<LibraryItem> javaItems = library.searchItems("Java");
+        System.out.println("Items with 'Java' in title: " + javaItems.size());
+
+        List<LibraryItem> loanableItems = library.getLoanableItems();
+        System.out.println("Currently loanable items: " + loanableItems.size());
+
+        System.out.println("\n11. Testing Comparators...");
+        if (!library.getAllItems().isEmpty()) {
+            List<LibraryItem> sortedByTitle = library.getAllItems().stream()
+                    .sorted((i1, i2) -> i1.getTitle().compareToIgnoreCase(i2.getTitle()))
+                    .toList();
+            System.out.println("First item alphabetically: " +
+                    (sortedByTitle.isEmpty() ? "None" : sortedByTitle.get(0).getTitle()));
         }
 
-        // ۸. تست loanable items
-        System.out.println("\n8. Loanable items (available + implements LoanPolicy):");
-        List<LibraryItem> loanable = library.getLoanableItems();
-        System.out.println("Count: " + loanable.size());
-        loanable.forEach(item ->
-                System.out.println("  - " + item.getTitle())
-        );
+        System.out.println("\n12. Testing item return...");
+        boolean returned = library.returnItem(book.getId());
+        System.out.println("Book returned successfully: " + returned);
+        System.out.println("Book available after return: " + book.getAvailable());
 
-        // ۹. ایجاد یک عضو و تست امانت
-        System.out.println("\n9. Testing borrowing with polymorphism:");
-        Member member = new Member(101, "Ali Rezaei", "ali@example.com");
-        library.addMember(member);
-
-        // کتاب را امانت بده
-        if (book.getAvailable()) {
-            var record = library.borrowItem(book.getId(), member);
-            System.out.println("Borrowed: " + book.getTitle());
-            System.out.println("Due date: " + record.getDueDate());
-            System.out.println("Book available now: " + book.getAvailable());
-        }
-
-        // ۱۰. گزارش نهایی
-        System.out.println("\n10. Final library report:");
+        System.out.println("\n13. Final Library Report:");
         System.out.println(library.generateLibraryReport());
 
-        System.out.println("\n✅ CHAPTER 6 COMPLETED SUCCESSFULLY!");
+        System.out.println("\n14. Testing ReferenceBook (non-loanable)...");
+        if (referenceBook.canBeBorrowed()) {
+            var refBorrowResult = library.borrowItem(referenceBook.getId(), ali);
+            System.out.println("Reference book borrow attempted: " +
+                    (refBorrowResult.isSuccess() ? "SUCCESS (UNEXPECTED!)" : "FAILED (EXPECTED)"));
+            if (!refBorrowResult.isSuccess()) {
+                System.out.println("Expected error: " + refBorrowResult.getMessage());
+            }
+        } else {
+            System.out.println("Correct: Reference book cannot be borrowed");
+        }
+
+        System.out.println("\n15. All Library Items:");
+        library.getAllItems().forEach(item -> {
+            System.out.println("  - " + item.getTitle() +
+                    " (" + item.getItemType() + ")" +
+                    " - Available: " + item.getAvailable() +
+                    " - Loanable: " + item.canBeBorrowed());
+        });
+
+        System.out.println("\n=== CHAPTER 7 (BEYOND CLASSES) DEMO COMPLETED ===");
     }
 }

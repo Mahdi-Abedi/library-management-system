@@ -1,17 +1,21 @@
 package entities.items;
 
+import enums.ItemStatus;
 import enums.LibraryItemType;
+import interfaces.LoanPolicy;
 
-public abstract class LibraryItem {
+public abstract sealed class LibraryItem permits Book, Magazine, DVD, ReferenceBook, AudioBook {
 
     protected boolean available;
-    private String id;
-    private String title;
+    private final String id;
+    private final String title;
+    private ItemStatus status;
 
     public LibraryItem(String id, String title) {
         this.id = id;
         this.title = title;
         this.available = true;
+        this.status = ItemStatus.AVAILABLE;
     }
 
     public static String generateId(LibraryItemType itemType, String key) {
@@ -22,16 +26,8 @@ public abstract class LibraryItem {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
     public String getTitle() {
         return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
     }
 
     public boolean getAvailable() {
@@ -42,13 +38,32 @@ public abstract class LibraryItem {
         this.available = available;
     }
 
-    public abstract LibraryItemType getItemType();
-
-    public void returnItem() {
-        available = true;
+    public ItemStatus getStatus() {
+        return status;
     }
 
-    public void borrowItem() {
-        available = false;
+    public void setStatus(ItemStatus status) {
+        this.status = status;
+    }
+
+    public abstract LibraryItemType getItemType();
+
+    public boolean canBeBorrowed() {
+        return available && this instanceof LoanPolicy;
+    }
+
+    @Override
+    public int hashCode() {
+        return id != null ? id.hashCode() : 0;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null || getClass() != obj.getClass())
+            return false;
+        LibraryItem item = (LibraryItem) obj;
+        return id != null ? item.getId().equals(id) : item.getId() == null;
     }
 }

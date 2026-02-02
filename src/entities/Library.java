@@ -9,15 +9,19 @@ import entities.transactions.BorrowRecord;
 import enums.LibraryItemType;
 import exceptions.ItemNotFoundException;
 import interfaces.LoanPolicy;
+import services.BorrowingService;
 
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class Library {
+
+    private final BorrowingService borrowingService;
+
     private final static int MAX_REPORT_ITEMS = 5;
 
     private final List<LibraryItem> items;
@@ -25,9 +29,14 @@ public class Library {
     private final List<BorrowRecord> borrowRecords;
 
     public Library() {
+        borrowingService = new BorrowingService();
         this.items = new ArrayList<>();
         this.members = new ArrayList<>();
         this.borrowRecords = new ArrayList<>();
+    }
+
+    public BorrowingService getBorrowingService() {
+        return borrowingService;
     }
 
     public boolean addItem(LibraryItem item) {
@@ -197,56 +206,32 @@ public class Library {
         return items.toArray(new LibraryItem[0]);
     }
 
-    public BorrowRecord borrowItem(String id, Member member) {
-        if (id == null || member == null || id.isBlank())
-            return null;
-
-        Optional<LibraryItem> itemOptional = findItemById(id);
-        if (itemOptional.isEmpty() || !itemOptional.get().getAvailable())
-            return null;
-
-        BorrowRecord borrowRecord = new BorrowRecord(itemOptional.get(), member);
-        borrowRecords.add(borrowRecord);
-
-        return borrowRecord;
-
+    public BorrowingService.BorrowResult borrowItem(String itemId, Member member) {
+        return borrowItem(itemId, member, null);
     }
 
-    public BorrowRecord borrowItem(String isbn) {
+    public BorrowingService.BorrowResult borrowItem(String itemId) {
         if (members.isEmpty())
             throw new IllegalStateException("No members available");
 
-        return borrowItem(isbn, members.getFirst());
+        return borrowItem(itemId, members.getFirst());
     }
 
-    public BorrowRecord borrowItem(LibraryItem item, Member member) {
-        if (item == null)
-            throw new IllegalArgumentException("Item cannot be null");
+    public BorrowingService.BorrowResult borrowItem(LibraryItem item, Member member) {
         return borrowItem(item.getId(), member);
 
     }
 
-    public BorrowRecord borrowItem(String id, Member member, int days) {
-        if (id == null || id.isBlank() || member == null)
-            return null;
+    public BorrowingService.BorrowResult borrowItem(String itemId, Member member, Integer customDays) {
+        Optional<LibraryItem> item = findItemById(itemId);
+        if (item.isEmpty())
+            return BorrowingService.BorrowResult.failure("Item not found");
 
-        if (days <= 0)
-            throw new IllegalArgumentException("Borrow days must be positive");
+        BorrowingService.BorrowResult result = borrowingService.borrowItem(item.get(), member, customDays);
+        if (result.isSuccess())
+            borrowRecords.add(result.getRecord());
 
-        if (days > 30)
-            throw new IllegalArgumentException("Maximum borrow period is 30 days");
-
-
-        Optional<LibraryItem> itemOptional = findItemById(id);
-        if (itemOptional.isEmpty() || !itemOptional.get().getAvailable())
-            return null;
-
-        BorrowRecord borrowRecord = new BorrowRecord(itemOptional.get(), member);
-        borrowRecord.setDueDate(LocalDate.now().plusDays(days));
-        borrowRecords.add(borrowRecord);
-
-        return borrowRecord;
-
+        return result;
     }
 
     public int borrowMultipleItems(Member member, String... ids) {
@@ -254,8 +239,8 @@ public class Library {
             return 0;
         int total = 0;
         for (String id : ids) {
-            BorrowRecord borrowRecord = borrowItem(id, member);
-            if (borrowRecord != null)
+            BorrowingService.BorrowResult result = borrowItem(id, member);
+            if (result.isSuccess())
                 total++;
         }
 
@@ -267,8 +252,8 @@ public class Library {
             return 0;
         int total = 0;
         for (LibraryItem item : items) {
-            BorrowRecord borrowRecord = borrowItem(item, member);
-            if (borrowRecord != null)
+            BorrowingService.BorrowResult result = borrowItem(item, member);
+            if (result.isSuccess())
                 total++;
         }
 
@@ -281,7 +266,7 @@ public class Library {
 
         return findActiveBorrowRecord(id)
                 .map(borrowRecord -> {
-                    borrowRecord.returnItem();
+                    borrowingService.returnItem(borrowRecord.getItem());
                     return true;
                 })
                 .orElse(false);
@@ -313,5 +298,53 @@ public class Library {
 
     public long countItemsByType(LibraryItemType type) {
         return items.stream().filter(item -> item.getItemType() == type).count();
+    }
+
+    public Statistics getStats() {
+        return new Statistics();
+    }
+
+    public class Statistics {
+        public long getTotalItems() {
+            return items.size();
+        }
+
+        public long getAvailableItems() {
+            return items.stream()
+                    .filter(LibraryItem::getAvailable)
+                    .count();
+        }
+
+        public long getLoanableItems() {
+            return items.stream()
+                    .filter(LibraryItem::canBeBorrowed)
+                    .count();
+        }
+
+        public Map<LibraryItemType, Long> getCountByType() {
+            return items.stream()
+                    .collect(Collectors.groupingBy(
+                            LibraryItem::getItemType,
+                            Collectors.counting()
+                    ));
+        }
+
+        public LibraryStatistics generateStatistics() {
+            List<String> recentTitles = items.stream()
+                    .limit(5)
+                    .map(LibraryItem::getTitle)
+                    .collect(Collectors.toList());
+
+            return new LibraryStatistics(
+                    getTotalItems(),
+                    getAvailableItems(),
+                    getTotalItems() - getAvailableItems(),
+                    members.size(),
+                    borrowRecords.stream()
+                            .filter(r -> r.getReturnDate() == null)
+                            .count(),
+                    recentTitles
+            );
+        }
     }
 }

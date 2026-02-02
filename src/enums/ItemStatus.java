@@ -1,5 +1,5 @@
 package enums;
 
-public enum BookStatus {
+public enum ItemStatus {
     AVAILABLE, BORROWED, RESERVED
 }
