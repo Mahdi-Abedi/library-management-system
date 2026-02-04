@@ -8,7 +8,7 @@ public final class ReferenceBook extends LibraryItem {
     private boolean inReadingRoomOnly;
 
     public ReferenceBook(String id, String title, String subject) {
-        super(generateId(LibraryItemType.AUDIO_BOOK, id), title);
+        super(generateId(LibraryItemType.REFERENCE_BOOK, id), title);
         this.subject = subject;
         this.inReadingRoomOnly = true;
     }

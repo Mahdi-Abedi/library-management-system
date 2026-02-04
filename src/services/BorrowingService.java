@@ -10,6 +10,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class BorrowingService {
     private final BorrowingConfig config;
@@ -112,6 +114,15 @@ public class BorrowingService {
         return daysOverdue * config.getDefaultDailyFine();
     }
 
+    public double calculateFineWithFunction(BorrowRecord record, Function<Long, Double> function) {
+        if (record.getReturnDate() == null || !record.isOverdue())
+            return 0.0;
+
+        long daysOverdue = record.getDaysOverdue();
+        return function.apply(daysOverdue);
+
+    }
+
     private Optional<BorrowRecord> findActiveRecord(LibraryItem item) {
         return activeRecords.stream()
                 .filter(r -> r.getItem().equals(item) && r.getReturnDate() == null)
@@ -153,6 +164,13 @@ public class BorrowingService {
         return activeRecords.stream()
                 .filter(BorrowRecord::isOverdue)
                 .toList();
+    }
+
+    public BorrowResult borrowItemWithSupplier(Supplier<LibraryItem> itemSupplier, Supplier<Member> memberSupplier) {
+        var item = itemSupplier.get();
+        var member = memberSupplier.get();
+
+        return borrowItem(item, member);
     }
 
     public static class BorrowResult {

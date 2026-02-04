@@ -1,22 +1,21 @@
 import entities.Library;
 import entities.items.*;
 import entities.people.Member;
-import entities.transactions.BorrowRecord;
 import enums.LibraryItemType;
 import enums.MemberStatus;
 import enums.MovieGenre;
+import interfaces.ItemFilter;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("=== LIBRARY MANAGEMENT SYSTEM - CHAPTER 7 DEMO ===\n");
+        System.out.println("=== LIBRARY MANAGEMENT SYSTEM - CHAPTER 8 DEMO ===\n");
 
-        // ۱. ایجاد کتابخانه
         Library library = new Library();
-
-        System.out.println("1. Creating library items...");
 
         LibraryItem book = new Book("978-0134685991", "Effective Java", "Joshua Bloch");
         ((Book) book).setPublicationYear(2018);
@@ -38,112 +37,57 @@ public class Main {
         library.addItem(dvd);
         library.addItem(referenceBook);
 
-        System.out.println("\n2. Creating members...");
         Member ali = new Member(101, "Ali Rezaei", "ali@example.com");
-        ali.setPhoneNumber("09123456789");
         ali.setStatus(MemberStatus.ACTIVE);
-
-        Member sara = new Member(102, "Sara Mohammadi", "sara@example.com");
-        sara.setStatus(MemberStatus.ACTIVE);
-
         library.addMember(ali);
-        library.addMember(sara);
 
-        System.out.println("\n3. Testing Records...");
-        var stats = library.getStats().generateStatistics();
-        System.out.println("Library Statistics:");
-        System.out.println("  Total items: " + stats.totalItems());
-        System.out.println("  Available: " + stats.availableItems());
-        System.out.println("  Utilization: " + stats.getUtilizationPercentage() + "%");
+        System.out.println("1. Testing ItemFilter interface:");
+        ItemFilter availableFilter = item -> item.getAvailable();
+        List<LibraryItem> availableItems = library.findItems(availableFilter);
+        System.out.println("Available items: " + availableItems.size());
 
-        System.out.println("\n4. Testing Sealed Classes...");
-        System.out.println("Book is a LibraryItem: " + (book instanceof LibraryItem));
-        System.out.println("Magazine is a LibraryItem: " + (magazine instanceof LibraryItem));
-        System.out.println("DVD is a LibraryItem: " + (dvd instanceof LibraryItem));
-        System.out.println("ReferenceBook is a LibraryItem: " + (referenceBook instanceof LibraryItem));
+        ItemFilter bookFilter = item -> item.getItemType() == LibraryItemType.BOOK;
+        List<LibraryItem> books = library.findItems(bookFilter);
+        System.out.println("Books: " + books.size());
 
-        System.out.println("\n5. Testing canBeBorrowed() method...");
-        System.out.println("Book can be borrowed: " + book.canBeBorrowed());
-        System.out.println("Magazine can be borrowed: " + magazine.canBeBorrowed());
-        System.out.println("DVD can be borrowed: " + dvd.canBeBorrowed());
-        System.out.println("ReferenceBook can be borrowed: " + referenceBook.canBeBorrowed());
+        System.out.println("\n2. Testing ItemProcessor interface:");
+        library.processItems(item ->
+                System.out.println("  - " + item.getTitle()));
 
-        System.out.println("\n6. Testing Enhanced Enums...");
-        for (LibraryItemType type : LibraryItemType.values()) {
-            System.out.println(type.getDisplayName() + ": " + type.getLoanInfo());
-        }
+        System.out.println("\n3. Testing ItemTransformer interface:");
+        List<String> itemDescriptions = library.transformItems(item ->
+                String.format("%s (%s)", item.getTitle(), item.getItemType()));
 
-        System.out.println("\n7. Testing Borrowing with BorrowingService...");
-        if (book.canBeBorrowed()) {
-            var borrowResult = library.borrowItem(book.getId(), ali);
-            if (borrowResult.isSuccess()) {
-                System.out.println("Successfully borrowed: " + book.getTitle());
-                BorrowRecord record = borrowResult.getRecord();
-                System.out.println("Due date: " + record.getDueDate());
+        System.out.println("Item descriptions:");
+        itemDescriptions.forEach(System.out::println);
 
-                // تست Local Class در BorrowRecord
-                System.out.println("\n8. Testing Local Class (ReportFormatter)...");
-                System.out.println(record.generateReport());
-            } else {
-                System.out.println("Failed to borrow: " + borrowResult.getMessage());
-            }
-        }
-
-        System.out.println("\n9. Testing Inner Class (Library.Statistics)...");
-        var libraryStats = library.getStats();
-        System.out.println("Total items: " + libraryStats.getTotalItems());
-        System.out.println("Available items: " + libraryStats.getAvailableItems());
-        System.out.println("Loanable items: " + libraryStats.getLoanableItems());
-
-        System.out.println("Items by type:");
-        libraryStats.getCountByType().forEach((type, count) -> {
-            System.out.println("  " + type.getDisplayName() + ": " + count);
+        List<Map<String, Object>> itemMaps = library.transformItems(item -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("title", item.getTitle());
+            map.put("type", item.getItemType());
+            map.put("available", item.getAvailable());
+            return map;
         });
 
-        System.out.println("\n10. Testing search and filter...");
-        List<LibraryItem> javaItems = library.searchItems("Java");
-        System.out.println("Items with 'Java' in title: " + javaItems.size());
+        System.out.println("\nFirst item as Map: " + itemMaps.get(0));
 
-        List<LibraryItem> loanableItems = library.getLoanableItems();
-        System.out.println("Currently loanable items: " + loanableItems.size());
+        System.out.println("\n4. Testing Method References:");
+        List<String> titles = library.transformItems(LibraryItem::getTitle);
+        System.out.println("First title: " + titles.get(0));
 
-        System.out.println("\n11. Testing Comparators...");
-        if (!library.getAllItems().isEmpty()) {
-            List<LibraryItem> sortedByTitle = library.getAllItems().stream()
-                    .sorted((i1, i2) -> i1.getTitle().compareToIgnoreCase(i2.getTitle()))
-                    .toList();
-            System.out.println("First item alphabetically: " +
-                    (sortedByTitle.isEmpty() ? "None" : sortedByTitle.get(0).getTitle()));
-        }
-
-        System.out.println("\n12. Testing item return...");
-        boolean returned = library.returnItem(book.getId());
-        System.out.println("Book returned successfully: " + returned);
-        System.out.println("Book available after return: " + book.getAvailable());
-
-        System.out.println("\n13. Final Library Report:");
-        System.out.println(library.generateLibraryReport());
-
-        System.out.println("\n14. Testing ReferenceBook (non-loanable)...");
-        if (referenceBook.canBeBorrowed()) {
-            var refBorrowResult = library.borrowItem(referenceBook.getId(), ali);
-            System.out.println("Reference book borrow attempted: " +
-                    (refBorrowResult.isSuccess() ? "SUCCESS (UNEXPECTED!)" : "FAILED (EXPECTED)"));
-            if (!refBorrowResult.isSuccess()) {
-                System.out.println("Expected error: " + refBorrowResult.getMessage());
+        System.out.println("\n5. Testing complex lambdas:");
+        library.processItems(item -> {
+            if (item.getAvailable() && item.canBeBorrowed()) {
+                System.out.println("✓ " + item.getTitle() + " - READY TO BORROW");
             }
-        } else {
-            System.out.println("Correct: Reference book cannot be borrowed");
-        }
-
-        System.out.println("\n15. All Library Items:");
-        library.getAllItems().forEach(item -> {
-            System.out.println("  - " + item.getTitle() +
-                    " (" + item.getItemType() + ")" +
-                    " - Available: " + item.getAvailable() +
-                    " - Loanable: " + item.canBeBorrowed());
         });
 
-        System.out.println("\n=== CHAPTER 7 (BEYOND CLASSES) DEMO COMPLETED ===");
+        System.out.println("\n6. Chaining operations:");
+        long loanableCount = library.getAllItems().stream()
+                .filter(LibraryItem::canBeBorrowed)
+                .count();
+        System.out.println("Loanable items: " + loanableCount);
+
+        System.out.println("\n=== CHAPTER 8 (LAMBDAS) DEMO COMPLETED ===");
     }
 }

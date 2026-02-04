@@ -8,14 +8,14 @@ import entities.people.Member;
 import entities.transactions.BorrowRecord;
 import enums.LibraryItemType;
 import exceptions.ItemNotFoundException;
+import interfaces.ItemFilter;
+import interfaces.ItemProcessor;
+import interfaces.ItemTransformer;
 import interfaces.LoanPolicy;
 import services.BorrowingService;
 
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Library {
@@ -110,6 +110,28 @@ public class Library {
                 .filter(item -> item.getId().equals(id))
                 .findFirst();
 
+    }
+
+    public List<LibraryItem> findItems(ItemFilter filter) {
+        return items.stream().filter(filter::test).toList();
+    }
+
+    public List<LibraryItem> filterItems(ItemFilter filter) {
+        return items.stream().filter(filter::test).toList();
+    }
+
+    public List<LibraryItem> searchItemsWithMethodRef(String keyword) {
+        return items.stream()
+                .filter(item -> containsKeyword(item, keyword))
+                .toList();
+    }
+
+    private boolean containsKeyword(LibraryItem item, String keyword) {
+        return item.getTitle().toLowerCase().contains(keyword.toLowerCase());
+    }
+
+    public List<LibraryItem> getItemsSortedBy(Comparator<LibraryItem> comparator) {
+        return items.stream().sorted(comparator).toList();
     }
 
     public Optional<BorrowRecord> findActiveBorrowRecord(String id) {
@@ -283,6 +305,14 @@ public class Library {
         }
 
         return total;
+    }
+
+    public void processItems(ItemProcessor itemProcessor) {
+        items.forEach(itemProcessor::process);
+    }
+
+    public <R> List<R> transformItems(ItemTransformer<R> itemTransformer) {
+        return items.stream().map(itemTransformer::transform).toList();
     }
 
     public List<LibraryItem> getAllItems() {
