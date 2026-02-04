@@ -8,14 +8,14 @@ import entities.people.Member;
 import entities.transactions.BorrowRecord;
 import enums.LibraryItemType;
 import exceptions.ItemNotFoundException;
-import interfaces.ItemFilter;
-import interfaces.ItemProcessor;
-import interfaces.ItemTransformer;
 import interfaces.LoanPolicy;
 import services.BorrowingService;
 
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Library {
@@ -112,12 +112,12 @@ public class Library {
 
     }
 
-    public List<LibraryItem> findItems(ItemFilter filter) {
-        return items.stream().filter(filter::test).toList();
+    public List<LibraryItem> findItems(Predicate<LibraryItem> predicate) {
+        return items.stream().filter(predicate).toList();
     }
 
-    public List<LibraryItem> filterItems(ItemFilter filter) {
-        return items.stream().filter(filter::test).toList();
+    public List<LibraryItem> filterItems(Predicate<LibraryItem> predicate) {
+        return items.stream().filter(predicate).toList();
     }
 
     public List<LibraryItem> searchItemsWithMethodRef(String keyword) {
@@ -307,12 +307,12 @@ public class Library {
         return total;
     }
 
-    public void processItems(ItemProcessor itemProcessor) {
-        items.forEach(itemProcessor::process);
+    public void processItems(Consumer<LibraryItem> consumer) {
+        items.forEach(consumer);
     }
 
-    public <R> List<R> transformItems(ItemTransformer<R> itemTransformer) {
-        return items.stream().map(itemTransformer::transform).toList();
+    public <R> List<R> transformItems(Function<LibraryItem, R> function) {
+        return items.stream().map(function).toList();
     }
 
     public List<LibraryItem> getAllItems() {

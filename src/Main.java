@@ -4,12 +4,12 @@ import entities.people.Member;
 import enums.LibraryItemType;
 import enums.MemberStatus;
 import enums.MovieGenre;
-import interfaces.ItemFilter;
 
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 public class Main {
     public static void main(String[] args) {
@@ -42,11 +42,11 @@ public class Main {
         library.addMember(ali);
 
         System.out.println("1. Testing ItemFilter interface:");
-        ItemFilter availableFilter = item -> item.getAvailable();
+        Predicate<LibraryItem> availableFilter = LibraryItem::getAvailable;
         List<LibraryItem> availableItems = library.findItems(availableFilter);
         System.out.println("Available items: " + availableItems.size());
 
-        ItemFilter bookFilter = item -> item.getItemType() == LibraryItemType.BOOK;
+        Predicate<LibraryItem> bookFilter = item -> item.getItemType() == LibraryItemType.BOOK;
         List<LibraryItem> books = library.findItems(bookFilter);
         System.out.println("Books: " + books.size());
 
