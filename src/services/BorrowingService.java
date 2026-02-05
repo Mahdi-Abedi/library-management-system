@@ -173,6 +173,18 @@ public class BorrowingService {
         return borrowItem(item, member);
     }
 
+    public <T extends LibraryItem & LoanPolicy> Optional<BorrowRecord> borrowItemWithPolicy(T item, Member member) {
+        if (!item.canBeBorrowed())
+            return Optional.empty();
+
+        BorrowResult result = borrowItem(item, member);
+        return Optional.ofNullable(result.getRecord());
+    }
+
+    public <T extends LibraryItem> List<BorrowRecord> getBorrowRecordsForType(Class<T> itemType, List<BorrowRecord> records) {
+        return records.stream().filter(record -> itemType.isInstance(record.getClass())).toList();
+    }
+
     public static class BorrowResult {
         private final boolean success;
         private final BorrowRecord record;

@@ -4,6 +4,8 @@ import enums.LibraryItemType;
 import interfaces.LoanPolicy;
 import interfaces.ReservationPolicy;
 
+import java.time.LocalDate;
+
 public final class Book extends LibraryItem implements LoanPolicy, ReservationPolicy {
     private String isbn;
     private String author;
@@ -106,11 +108,17 @@ public final class Book extends LibraryItem implements LoanPolicy, ReservationPo
         }
 
         public Builder setPublicationYear(int publicationYear) {
+            if (publicationYear > LocalDate.now().getYear() || publicationYear < 1800)
+                throw new IllegalArgumentException("Invalid publication year");
+
             this.publicationYear = publicationYear;
             return this;
         }
 
         public Builder setPageCount(int pageCount) {
+            if (pageCount <= 0)
+                throw new IllegalArgumentException("Page count must be positive");
+
             this.pageCount = pageCount;
             return this;
         }

@@ -4,90 +4,116 @@ import entities.people.Member;
 import enums.LibraryItemType;
 import enums.MemberStatus;
 import enums.MovieGenre;
+import services.ItemCatalog;
 
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
+import java.util.Optional;
+import java.util.Set;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("=== LIBRARY MANAGEMENT SYSTEM - CHAPTER 8 DEMO ===\n");
+        System.out.println("=== LIBRARY MANAGEMENT SYSTEM - CHAPTER 9 DEMO ===\n");
 
         Library library = new Library();
 
-        LibraryItem book = new Book("978-0134685991", "Effective Java", "Joshua Bloch");
-        ((Book) book).setPublicationYear(2018);
-        ((Book) book).setPageCount(416);
+        Book effectiveJava = new Book.Builder("978-0134685991", "Effective Java", "Joshua Bloch")
+                .setPublicationYear(2018)
+                .setPageCount(416)
+                .build();
 
-        LibraryItem magazine = new Magazine("JAVA-2024-01", "Java Monthly",
-                LocalDate.of(2024, 1, 15));
-        ((Magazine) magazine).setPublisher("Java Publications Inc.");
+        Book cleanCode = new Book.Builder("978-0132350884", "Clean Code", "Robert Martin")
+                .setPublicationYear(2008)
+                .setPageCount(464)
+                .build();
 
-        LibraryItem dvd = new DVD("DVD-001", "Java Design Patterns", "John Doe");
-        ((DVD) dvd).setDurationMinutes(120);
-        ((DVD) dvd).setGenre(MovieGenre.EDUCATIONAL);
+        Magazine javaMag = new Magazine("JAVA-2024-01", "Java Monthly", LocalDate.of(2024, 1, 15));
+        javaMag.setPublisher("Java Publications Inc.");
 
-        LibraryItem referenceBook = new ReferenceBook("REF-001", "Java Language Specification",
-                "Programming Languages");
+        DVD designPatterns = new DVD("DVD-001", "Java Design Patterns", "John Doe");
+        designPatterns.setDurationMinutes(120);
+        designPatterns.setGenre(MovieGenre.EDUCATIONAL);
 
-        library.addItem(book);
-        library.addItem(magazine);
-        library.addItem(dvd);
-        library.addItem(referenceBook);
+        ReferenceBook javaSpec = new ReferenceBook("REF-001", "Java Language Specification", "Programming Languages");
+
+        library.addItem(effectiveJava);
+        library.addItem(cleanCode);
+        library.addItem(javaMag);
+        library.addItem(designPatterns);
+        library.addItem(javaSpec);
 
         Member ali = new Member(101, "Ali Rezaei", "ali@example.com");
         ali.setStatus(MemberStatus.ACTIVE);
         library.addMember(ali);
 
-        System.out.println("1. Testing ItemFilter interface:");
-        Predicate<LibraryItem> availableFilter = LibraryItem::getAvailable;
-        List<LibraryItem> availableItems = library.findItems(availableFilter);
-        System.out.println("Available items: " + availableItems.size());
+        library.borrowItem(effectiveJava.getId(), ali);
 
-        Predicate<LibraryItem> bookFilter = item -> item.getItemType() == LibraryItemType.BOOK;
-        List<LibraryItem> books = library.findItems(bookFilter);
-        System.out.println("Books: " + books.size());
+        System.out.println("1. Generic Methods with Class<T>:");
+        List<Book> allBooks = library.getItemsByType(Book.class);
+        System.out.println("Total books found: " + allBooks.size());
 
-        System.out.println("\n2. Testing ItemProcessor interface:");
-        library.processItems(item ->
-                System.out.println("  - " + item.getTitle()));
+        Optional<DVD> foundDVD = library.findItemByTypeAndId(DVD.class, "DVD-001");
+        foundDVD.ifPresentOrElse(
+                dvd -> System.out.println("DVD found: " + dvd.getTitle()),
+                () -> System.out.println("DVD not found")
+        );
 
-        System.out.println("\n3. Testing ItemTransformer interface:");
-        List<String> itemDescriptions = library.transformItems(item ->
-                String.format("%s (%s)", item.getTitle(), item.getItemType()));
-
-        System.out.println("Item descriptions:");
-        itemDescriptions.forEach(System.out::println);
-
-        List<Map<String, Object>> itemMaps = library.transformItems(item -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("title", item.getTitle());
-            map.put("type", item.getItemType());
-            map.put("available", item.getAvailable());
-            return map;
-        });
-
-        System.out.println("\nFirst item as Map: " + itemMaps.get(0));
-
-        System.out.println("\n4. Testing Method References:");
-        List<String> titles = library.transformItems(LibraryItem::getTitle);
-        System.out.println("First title: " + titles.get(0));
-
-        System.out.println("\n5. Testing complex lambdas:");
-        library.processItems(item -> {
-            if (item.getAvailable() && item.canBeBorrowed()) {
-                System.out.println("✓ " + item.getTitle() + " - READY TO BORROW");
+        System.out.println("\n2. Collections Grouping:");
+        Map<LibraryItemType, List<LibraryItem>> groupedByType = library.groupItemsByType();
+        groupedByType.forEach((type, items) -> {
+            if (!items.isEmpty()) {
+                System.out.println(type.getDisplayName() + ": " + items.size() + " items");
             }
         });
 
-        System.out.println("\n6. Chaining operations:");
-        long loanableCount = library.getAllItems().stream()
-                .filter(LibraryItem::canBeBorrowed)
-                .count();
-        System.out.println("Loanable items: " + loanableCount);
+        System.out.println("\n3. Partitioning by Availability:");
+        Map<Boolean, List<LibraryItem>> availabilityMap = library.partitionByAvailability();
+        System.out.println("Available items: " + availabilityMap.get(true).size());
+        System.out.println("Borrowed items: " + availabilityMap.get(false).size());
 
-        System.out.println("\n=== CHAPTER 8 (LAMBDAS) DEMO COMPLETED ===");
+        System.out.println("\n4. Set Operations:");
+        Set<String> uniqueTitles = library.getAllUniqueTitles();
+        System.out.println("Unique titles in library: " + uniqueTitles.size());
+        System.out.println("Sample titles:");
+        uniqueTitles.stream().limit(3).forEach(title -> System.out.println("  - " + title));
+
+        System.out.println("\n5. Map Operations:");
+        Map<String, LibraryItem> itemMap = library.createItemMapById();
+        System.out.println("Items in map: " + itemMap.size());
+        itemMap.forEach((id, item) ->
+                System.out.println("  " + id + " -> " + item.getTitle()));
+
+        System.out.println("\n6. Wildcard Usage:");
+        List<Book> booksList = library.getItemsByType(Book.class);
+        System.out.println("Printing all books (using wildcard):");
+        library.printAllItems(booksList);
+
+        System.out.println("\n7. Type-Safe ItemCatalog:");
+        ItemCatalog catalog = new ItemCatalog();
+        library.getAllItems().forEach(catalog::addItem);
+
+        Map<LibraryItemType, Integer> typeCounts = catalog.getTypeCounts();
+        System.out.println("Item counts by type:");
+        typeCounts.forEach((type, count) ->
+                System.out.println("  " + type.getDisplayName() + ": " + count));
+
+        System.out.println("\n8. Builder Pattern with Validation:");
+        try {
+            Book invalidBook = new Book.Builder(null, "Invalid Book", "Author")
+                    .build();
+        } catch (NullPointerException e) {
+            System.out.println("Caught expected NPE for null ISBN");
+        }
+
+        try {
+            Book invalidYearBook = new Book.Builder("123", "Test", "Author")
+                    .setPublicationYear(3000)
+                    .build();
+        } catch (IllegalArgumentException e) {
+            System.out.println("Caught expected exception for invalid year");
+        }
+
+        System.out.println("\n=== CHAPTER 9 (COLLECTIONS & GENERICS) COMPLETED ===");
     }
 }

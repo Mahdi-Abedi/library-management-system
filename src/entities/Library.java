@@ -157,6 +157,50 @@ public class Library {
                 .collect(Collectors.toList());
     }
 
+    public <T extends LibraryItem> List<T> getItemsByType(Class<T> type) {
+        return items.stream()
+                .filter(type::isInstance)
+                .map(type::cast)
+                .collect(Collectors.toList());
+    }
+
+    public <T extends LibraryItem> Optional<T> findItemByTypeAndId(Class<T> type, String id) {
+        return items.stream()
+                .filter(type::isInstance)
+                .map(type::cast)
+                .filter(item -> item.getId().equals(id))
+                .findFirst();
+    }
+
+    public Map<LibraryItemType, List<LibraryItem>> groupItemsByType() {
+        return items.stream().collect(Collectors.groupingBy(LibraryItem::getItemType));
+    }
+
+    public Map<Boolean, List<LibraryItem>> partitionByAvailability() {
+        return items.stream().collect(Collectors.partitioningBy(LibraryItem::getAvailable));
+    }
+
+    public Set<String> getAllUniqueTitles() {
+        return items.stream().map(LibraryItem::getTitle).collect(Collectors.toSet());
+    }
+
+    public Map<String, LibraryItem> createItemMapById() {
+        return items.stream().collect(Collectors.toMap(LibraryItem::getId, Function.identity(), (existing, replacement) -> existing));
+    }
+
+    public void printAllItems(List<? extends LibraryItem> items) {
+        items.forEach(item ->
+                System.out.println(item.getTitle() + " - " + item.getItemType()));
+    }
+
+    public void addMultipleItemsFromCollection(Collection<? extends LibraryItem> newItems) {
+        newItems.forEach(this::addItem);
+    }
+
+    public List<? super LibraryItem> getItemsAsSuperList() {
+        return new ArrayList<Object>(items);
+    }
+
     public String generateLibraryReport() {
         long itemCount = items.size();
         long availableCount = getAvailableItems().size();
