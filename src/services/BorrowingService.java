@@ -7,11 +7,11 @@ import enums.ItemStatus;
 import interfaces.LoanPolicy;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class BorrowingService {
     private final BorrowingConfig config;
@@ -179,6 +179,28 @@ public class BorrowingService {
 
         BorrowResult result = borrowItem(item, member);
         return Optional.ofNullable(result.getRecord());
+    }
+
+    public Stream<BorrowRecord> activeBorrowsStream() {
+        return activeRecords.stream()
+                .filter(record -> record.getReturnDate() == null);
+    }
+
+    public Map<Member, List<BorrowRecord>> getBorrowsByMember() {
+        return activeRecords.stream()
+                .collect(Collectors.groupingBy(BorrowRecord::getMember));
+    }
+
+    public Optional<BorrowRecord> findLongestActiveBorrow() {
+        return activeBorrowsStream()
+                .max(Comparator.comparingLong(BorrowRecord::getBorrowDurationInDays));
+    }
+
+    public double calculateTotalFines() {
+        return activeRecords.stream()
+                .filter(BorrowRecord::isOverdue)
+                .mapToDouble(this::calculateFine)
+                .sum();
     }
 
     public <T extends LibraryItem> List<BorrowRecord> getBorrowRecordsForType(Class<T> itemType, List<BorrowRecord> records) {

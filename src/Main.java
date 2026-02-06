@@ -1,16 +1,14 @@
 import entities.Library;
 import entities.items.*;
 import entities.people.Member;
+import entities.transactions.BorrowRecord;
 import enums.LibraryItemType;
 import enums.MemberStatus;
 import enums.MovieGenre;
 import services.ItemCatalog;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
@@ -115,5 +113,82 @@ public class Main {
         }
 
         System.out.println("\n=== CHAPTER 9 (COLLECTIONS & GENERICS) COMPLETED ===");
+
+
+        System.out.println("\n=== CHAPTER 10: STREAMS ===\n");
+
+        System.out.println("1. Basic Stream Operations:");
+        List<LibraryItem> availableSorted = library.findAvailableItemsSortedByTitle();
+        System.out.println("Available items sorted by title: " + availableSorted.size());
+
+        List<String> uppercaseTitles = library.getAllTitlesUppercase();
+        System.out.println("Uppercase titles: " + uppercaseTitles);
+
+        Optional<LibraryItem> firstBook = library.findFirstAvailableBook();
+        firstBook.ifPresent(book ->
+                System.out.println("First available book: " + book.getTitle()));
+
+        System.out.println("\n2. Terminal Operations:");
+        boolean hasEffectiveJava = library.hasItemWithTitle("Effective Java");
+        System.out.println("Has 'Effective Java': " + hasEffectiveJava);
+
+        long availableCount = library.countItemsByCondition(LibraryItem::getAvailable);
+        System.out.println("Available items count: " + availableCount);
+
+        System.out.println("\n3. Collectors:");
+        Map<LibraryItemType, String> typeToTitles = library.getTypeToTitlesMap();
+        typeToTitles.forEach((type, titles) ->
+                System.out.println(type + ": " + titles));
+
+        Optional<LibraryItem> mostRecent = library.findMostRecentItem();
+        mostRecent.ifPresent(item ->
+                System.out.println("Most recent item: " + item.getTitle()));
+
+        System.out.println("\n4. Statistics:");
+        DoubleSummaryStatistics pageStats = library.getBookPageStatistics();
+        System.out.println("Book Page Statistics:");
+        System.out.println("  Count: " + pageStats.getCount());
+        System.out.println("  Min: " + pageStats.getMin());
+        System.out.println("  Max: " + pageStats.getMax());
+        System.out.println("  Average: " + pageStats.getAverage());
+
+        System.out.println("\n5. Parallel Streams:");
+        Map<LibraryItemType, Long> parallelCounts = library.countItemsByTypeParallel();
+        parallelCounts.forEach((type, count) ->
+                System.out.println(type + " (parallel): " + count));
+
+        System.out.println("\n6. Advanced Collectors:");
+        Map<LibraryItemType, Double> avgValues = library.getAverageValuesByType();
+        avgValues.forEach((type, avg) ->
+                System.out.printf("%s average value: %.2f%n", type, avg));
+
+        Map<Boolean, List<String>> loanableTitles = library.partitionTitlesByLoanability();
+        System.out.println("Loanable titles: " + loanableTitles.get(true).size());
+        System.out.println("Non-loanable titles: " + loanableTitles.get(false).size());
+
+        String allTitlesString = library.getAllTitlesAsSingleString();
+        System.out.println("All titles as string: " + allTitlesString);
+
+        System.out.println("\n7. BorrowingService Streams:");
+        if (library.getBorrowingService() != null) {
+            double totalFines = library.getBorrowingService().calculateTotalFines();
+            System.out.println("Total fines: " + totalFines);
+
+            Map<Member, List<BorrowRecord>> borrowsByMember =
+                    library.getBorrowingService().getBorrowsByMember();
+            System.out.println("Active borrows by member: " + borrowsByMember.size());
+        }
+
+        System.out.println("\n8. Stream Pipeline Examples:");
+        System.out.println("Complex stream pipeline result:");
+        library.itemStream()
+                .filter(item -> item.getAvailable())
+                .filter(item -> item.canBeBorrowed())
+                .map(LibraryItem::getTitle)
+                .sorted()
+                .limit(3)
+                .forEach(title -> System.out.println("  - " + title));
+
+        System.out.println("\n=== CHAPTER 10 (STREAMS) COMPLETED ===");
     }
 }

@@ -17,6 +17,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Library {
 
@@ -372,6 +373,118 @@ public class Library {
 
     public long countItemsByType(LibraryItemType type) {
         return items.stream().filter(item -> item.getItemType() == type).count();
+    }
+
+    public Stream<LibraryItem> itemStream() {
+        return items.stream();
+    }
+
+    public List<LibraryItem> findAvailableItemsSortedByTitle() {
+        return itemStream()
+                .filter(LibraryItem::getAvailable)
+                .sorted(Comparator.comparing(LibraryItem::getTitle, String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
+    }
+
+    public List<String> getAllTitlesUppercase() {
+        return itemStream()
+                .map(LibraryItem::getTitle)
+                .map(String::toUpperCase)
+                .collect(Collectors.toList());
+    }
+
+    public Optional<LibraryItem> findFirstAvailableBook() {
+        return itemStream()
+                .filter(item -> item.getItemType() == LibraryItemType.BOOK)
+                .filter(LibraryItem::getAvailable)
+                .findFirst();
+    }
+
+    public boolean hasItemWithTitle(String title) {
+        return itemStream()
+                .anyMatch(item -> item.getTitle().equalsIgnoreCase(title));
+    }
+
+    public long countItemsByCondition(Predicate<LibraryItem> condition) {
+        return itemStream()
+                .filter(condition)
+                .count();
+    }
+
+    public Map<LibraryItemType, String> getTypeToTitlesMap() {
+        return itemStream()
+                .collect(Collectors.groupingBy(
+                        LibraryItem::getItemType,
+                        Collectors.mapping(
+                                LibraryItem::getTitle,
+                                Collectors.joining(", ")
+                        )
+                ));
+    }
+
+    public Optional<LibraryItem> findMostRecentItem() {
+        return itemStream()
+                .max(Comparator.comparing(item -> {
+                    if (item instanceof Book book) {
+                        return book.getPublicationYear();
+                    } else if (item instanceof Magazine magazine) {
+                        return magazine.getPublicationDate().getYear();
+                    }
+                    return 0;
+                }));
+    }
+
+    public DoubleSummaryStatistics getBookPageStatistics() {
+        return itemStream()
+                .filter(item -> item instanceof Book)
+                .map(item -> (Book) item)
+                .mapToDouble(Book::getPageCount)
+                .summaryStatistics();
+    }
+
+    public List<LibraryItem> getDistinctItemsByType() {
+        return itemStream()
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toCollection(() ->
+                                new TreeSet<>(Comparator.comparing(LibraryItem::getItemType))),
+                        ArrayList::new
+                ));
+    }
+
+    public List<LibraryItem> processItemsInParallel(Consumer<LibraryItem> action) {
+        return items.parallelStream().peek(action).toList();
+    }
+
+    public Map<LibraryItemType, Long> countItemsByTypeParallel() {
+        return items.parallelStream()
+                .collect(Collectors.groupingByConcurrent(
+                        LibraryItem::getItemType,
+                        Collectors.counting()));
+    }
+
+    public Map<LibraryItemType, Double> getAverageValuesByType() {
+        return itemStream()
+                .collect(Collectors.groupingBy(
+                        LibraryItem::getItemType,
+                        Collectors.averagingDouble(this::calculateTotalValue)
+                ));
+    }
+
+    public Map<Boolean, List<String>> partitionTitlesByLoanability() {
+        return itemStream()
+                .collect(Collectors.partitioningBy(
+                        LibraryItem::canBeBorrowed,
+                        Collectors.mapping(
+                                LibraryItem::getTitle,
+                                Collectors.toList()
+                        )
+                ));
+    }
+
+    public String getAllTitlesAsSingleString() {
+        return itemStream()
+                .map(LibraryItem::getTitle)
+                .collect(Collectors.joining("; ", "[", "]"));
     }
 
     public Statistics getStats() {
