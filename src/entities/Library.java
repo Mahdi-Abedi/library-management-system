@@ -7,7 +7,10 @@ import entities.items.Magazine;
 import entities.people.Member;
 import entities.transactions.BorrowRecord;
 import enums.LibraryItemType;
+import exceptions.BorrowException;
+import exceptions.ItemNotAvailableException;
 import exceptions.ItemNotFoundException;
+import exceptions.MemberLimitExceededException;
 import interfaces.LoanPolicy;
 import services.BorrowingService;
 
@@ -485,6 +488,12 @@ public class Library {
         return itemStream()
                 .map(LibraryItem::getTitle)
                 .collect(Collectors.joining("; ", "[", "]"));
+    }
+
+    public void borrowItemWithException(String itemId, Member member) throws BorrowException {
+        LibraryItem item = getItemByIdOrThrow(itemId);
+
+        getBorrowingService().borrowItemWithException(item, member);
     }
 
     public Statistics getStats() {

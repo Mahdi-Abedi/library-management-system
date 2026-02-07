@@ -4,6 +4,9 @@ import entities.items.LibraryItem;
 import entities.people.Member;
 import entities.transactions.BorrowRecord;
 import enums.ItemStatus;
+import exceptions.BorrowException;
+import exceptions.ItemNotAvailableException;
+import exceptions.MemberLimitExceededException;
 import interfaces.LoanPolicy;
 
 import java.time.LocalDate;
@@ -26,30 +29,65 @@ public class BorrowingService {
     }
 
     public BorrowResult borrowItem(LibraryItem item, Member member, Integer customDays) {
-        BorrowResult validateResult = validateBorrow(item, member, customDays);
-        if (validateResult != null)
-            return validateResult;
+        try {
+            BorrowResult validateResult = validateBorrow(item, member, customDays);
+            if (validateResult != null)
+                return validateResult;
 
-        if (!config.isAllowMultipleBorrows()) {
-            long activeCount = activeRecords.stream()
-                    .filter(r -> r.getMember().equals(member) && r.getReturnDate() == null)
-                    .count();
-            if (activeCount >= config.getMaxBorrowsPerMember()) {
-                return BorrowResult.failure("Member has reached maximum borrow limit");
+            if (!config.isAllowMultipleBorrows()) {
+                long activeCount = activeRecords.stream()
+                        .filter(r -> r.getMember().equals(member) && r.getReturnDate() == null)
+                        .count();
+                if (activeCount >= config.getMaxBorrowsPerMember()) {
+                    throw new MemberLimitExceededException(item.getId(), member.getId(), (int) activeCount, config.getMaxBorrowsPerMember());
+                }
             }
+
+            if (!item.getAvailable())
+                throw new ItemNotAvailableException(item.getId(), member.getId());
+
+            item.setAvailable(false);
+            item.setStatus(ItemStatus.BORROWED);
+
+            BorrowRecord record = createBorrowRecord(item, member, customDays);
+
+            if (item instanceof LoanPolicy policy) {
+                record.setDueDate(record.getBorrowDate().plusDays(policy.getMaxLoanDays()));
+            }
+            activeRecords.add(record);
+
+            return BorrowResult.success(record);
+        } catch (MemberLimitExceededException | ItemNotAvailableException e) {
+            return BorrowResult.failure(e.getMessage());
+        } catch (Exception e) {
+            return BorrowResult.failure("Unexpected error: " + e.getMessage());
+        }
+    }
+
+    public void borrowItemWithException(LibraryItem item, Member member) throws BorrowException {
+        if (!item.canBeBorrowed()) {
+            throw new BorrowException("Item cannot be borrowed",
+                    item.getId(), member.getId());
         }
 
-        item.setAvailable(false);
-        item.setStatus(ItemStatus.BORROWED);
-
-        BorrowRecord record = createBorrowRecord(item, member, customDays);
-
-        if (item instanceof LoanPolicy policy) {
-            record.setDueDate(record.getBorrowDate().plusDays(policy.getMaxLoanDays()));
+        if (!item.getAvailable()) {
+            throw new ItemNotAvailableException(item.getId(), member.getId());
         }
-        activeRecords.add(record);
+        long activeBorrows = getActiveBorrows().size();
 
-        return BorrowResult.success(record);
+        if (activeBorrows >= 5) {
+            throw new MemberLimitExceededException(
+                    item.getId(),
+                    member.getId(),
+                    (int) activeBorrows,
+                    5
+            );
+        }
+
+        BorrowingService.BorrowResult result = this.borrowItem(item, member);
+        if (!result.isSuccess()) {
+            throw new BorrowException(result.getMessage(), item.getId(), member.getId());
+        }
     }
 
     private BorrowResult validateBorrow(LibraryItem item, Member member, Integer customDays) {
