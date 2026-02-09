@@ -11,12 +11,18 @@ import interfaces.LoanPolicy;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class BorrowingService {
+    private final ReentrantLock borrowLock = new ReentrantLock(true);
+    private final ReentrantReadWriteLock recordLock = new ReentrantReadWriteLock();
+    private volatile boolean maintenanceMode = false;
+
     private final BorrowingConfig config;
     private final List<BorrowRecord> activeRecords = new ArrayList<>();
 
@@ -28,7 +34,24 @@ public class BorrowingService {
         this.config = config;
     }
 
+    public void setMaintenanceMode(boolean enabled) {
+        this.maintenanceMode = enabled;
+    }
+
     public BorrowResult borrowItem(LibraryItem item, Member member, Integer customDays) {
+        if (maintenanceMode) {
+            return BorrowResult.failure("System under maintenance");
+        }
+
+        borrowLock.lock();
+        try {
+            return validateAndBorrow(item, member, customDays);
+        } finally {
+            borrowLock.unlock();
+        }
+    }
+
+    public BorrowResult validateAndBorrow(LibraryItem item, Member member, Integer customDays) {
         try {
             BorrowResult validateResult = validateBorrow(item, member, customDays);
             if (validateResult != null)
@@ -54,13 +77,22 @@ public class BorrowingService {
             if (item instanceof LoanPolicy policy) {
                 record.setDueDate(record.getBorrowDate().plusDays(policy.getMaxLoanDays()));
             }
-            activeRecords.add(record);
+            addBorrowRecord(record);
 
             return BorrowResult.success(record);
         } catch (MemberLimitExceededException | ItemNotAvailableException e) {
             return BorrowResult.failure(e.getMessage());
         } catch (Exception e) {
             return BorrowResult.failure("Unexpected error: " + e.getMessage());
+        }
+    }
+
+    public void addBorrowRecord(BorrowRecord record) {
+        recordLock.writeLock().lock();
+        try {
+            activeRecords.add(record);
+        } finally {
+            recordLock.writeLock().unlock();
         }
     }
 
@@ -189,7 +221,12 @@ public class BorrowingService {
     }
 
     public List<BorrowRecord> getActiveBorrows() {
-        return new ArrayList<>(activeRecords);
+        recordLock.readLock().lock();
+        try {
+            return new ArrayList<>(activeRecords);
+        } finally {
+            recordLock.readLock().unlock();
+        }
     }
 
     public List<BorrowRecord> getMemberActiveBorrows(Member member) {

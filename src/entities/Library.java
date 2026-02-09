@@ -8,14 +8,15 @@ import entities.people.Member;
 import entities.transactions.BorrowRecord;
 import enums.LibraryItemType;
 import exceptions.BorrowException;
-import exceptions.ItemNotAvailableException;
 import exceptions.ItemNotFoundException;
-import exceptions.MemberLimitExceededException;
 import interfaces.LoanPolicy;
 import services.BorrowingService;
 
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -32,11 +33,19 @@ public class Library {
     private final List<Member> members;
     private final List<BorrowRecord> borrowRecords;
 
+    private final AtomicInteger totalBorrowOperations = new AtomicInteger(0);
+    private final ConcurrentHashMap<LibraryItemType, AtomicInteger> borrowCountByType;
+
     public Library() {
         borrowingService = new BorrowingService();
-        this.items = new ArrayList<>();
-        this.members = new ArrayList<>();
-        this.borrowRecords = new ArrayList<>();
+        this.items = new CopyOnWriteArrayList<>();
+        this.members = new CopyOnWriteArrayList<>();
+        this.borrowRecords = new CopyOnWriteArrayList<>();
+
+        this.borrowCountByType = new ConcurrentHashMap<>();
+        for (LibraryItemType type : LibraryItemType.values()) {
+            borrowCountByType.put(type, new AtomicInteger(0));
+        }
     }
 
     public BorrowingService getBorrowingService() {
@@ -47,11 +56,13 @@ public class Library {
         if (item == null || item.getId() == null)
             return false;
 
-        boolean exists = items.stream().anyMatch(b -> b.equals(item));
-        if (exists)
-            return false;
+        synchronized (items) {
+            boolean exists = items.stream().anyMatch(b -> b.equals(item));
+            if (exists)
+                return false;
 
-        return this.items.add(item);
+            return this.items.add(item);
+        }
     }
 
     public boolean addMember(Member member) {
@@ -297,11 +308,13 @@ public class Library {
         if (item.isEmpty())
             return BorrowingService.BorrowResult.failure("Item not found");
 
-        BorrowingService.BorrowResult result = borrowingService.borrowItem(item.get(), member, customDays);
-        if (result.isSuccess())
-            borrowRecords.add(result.getRecord());
+        synchronized (item.get()) {
+            BorrowingService.BorrowResult result = borrowingService.borrowItem(item.get(), member, customDays);
+            if (result.isSuccess())
+                borrowRecords.add(result.getRecord());
 
-        return result;
+            return result;
+        }
     }
 
     public int borrowMultipleItems(Member member, String... ids) {
