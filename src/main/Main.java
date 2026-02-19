@@ -3,21 +3,22 @@ package main;
 import entities.Library;
 import entities.items.*;
 import entities.people.Member;
+import entities.transactions.BorrowRecord;
+import enums.LibraryItemType;
 import enums.MemberStatus;
 import enums.MovieGenre;
-import io.FileHandler;
-import io.LibraryDataManager;
-import io.SerializationHandler;
+import jdbc.BorrowRecordDAO;
+import jdbc.DatabaseManager;
+import jdbc.ItemDAO;
+import jdbc.MemberDAO;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
+import java.sql.*;
 import java.time.LocalDate;
 import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("=== LIBRARY MANAGEMENT SYSTEM - CHAPTER 14 DEMO ===\n");
+        System.out.println("=== LIBRARY MANAGEMENT SYSTEM - CHAPTER 15 DEMO ===\n");
 
         Library library = new Library();
 
@@ -50,83 +51,125 @@ public class Main {
         ali.setStatus(MemberStatus.ACTIVE);
         library.addMember(ali);
 
-        try {
-            System.out.println("1. FILE HANDLER DEMONSTRATION");
-            FileHandler fileHandler = new FileHandler("library_data");
+        try (DatabaseManager dbManager = new DatabaseManager()) {
+            System.out.println("1. DATABASE CONNECTION");
+            System.out.println("Connected to: " + dbManager.getConnection().getMetaData().getURL());
+
+            System.out.println("\n2. CREATING TABLES");
+            dbManager.createTables();
+            System.out.println("Tables created successfully");
+
+            System.out.println("\n3. INSERTING DATA WITH DAO");
+            ItemDAO itemDAO = new ItemDAO(dbManager);
+            MemberDAO memberDAO = new MemberDAO(dbManager);
+            BorrowRecordDAO recordDAO = new BorrowRecordDAO(dbManager);
 
             for (LibraryItem item : library.getAllItems()) {
-                fileHandler.saveItem(item);
-                System.out.println("Saved: " + item.getId() + ".txt");
+                itemDAO.insertItem(item);
+                System.out.println("Inserted: " + item.getTitle());
             }
 
-            List<String> itemData = fileHandler.readItem(effectiveJava.getId());
-            System.out.println("\nItem data for " + effectiveJava.getId() + ":");
-            itemData.forEach(line -> System.out.println("  " + line));
+            memberDAO.insertMember(ali);
+            System.out.println("Inserted member: " + ali.getName());
 
-            List<Path> itemFiles = fileHandler.listAllItemFiles();
-            System.out.println("\nTotal item files: " + itemFiles.size());
+            System.out.println("\n4. QUERYING DATA");
+            List<LibraryItem> allItems = itemDAO.findAll();
+            System.out.println("All items in database: " + allItems.size());
 
-            System.out.println("\n2. SERIALIZATION DEMONSTRATION");
-            SerializationHandler serialHandler = new SerializationHandler();
+            List<Member> allMembers = memberDAO.findAll();
+            System.out.println("All members in database: " + allMembers.size());
 
-            serialHandler.serializeLibrary(library, "library.ser");
-            System.out.println("Library serialized to library.ser");
+            System.out.println("\n5. FINDING BY TYPE");
+            List<LibraryItem> books = itemDAO.findByType(LibraryItemType.BOOK);
+            System.out.println("Books found: " + books.size());
 
-            Library deserializedLib = serialHandler.deserializeLibrary("library.ser");
-            System.out.println("Library deserialized with " + deserializedLib.getAllItems().size() + " items");
+            System.out.println("\n6. COUNT BY TYPE");
+            int bookCount = itemDAO.countByType(LibraryItemType.BOOK);
+            int dvdCount = itemDAO.countByType(LibraryItemType.DVD);
+            System.out.println("Books: " + bookCount);
+            System.out.println("DVDs: " + dvdCount);
 
-            System.out.println("\n3. CSV EXPORT/IMPORT");
-            LibraryDataManager dataManager = new LibraryDataManager("library_data");
+            System.out.println("\n7. BORROW OPERATION WITH TRANSACTION");
+            Connection conn = dbManager.getConnection();
+            try {
+                conn.setAutoCommit(false);
 
-            dataManager.exportToCSV(library, "library_export.csv");
-            System.out.println("Library exported to library_export.csv");
+                LibraryItem book = itemDAO.findById(effectiveJava.getId()).orElseThrow();
+                Member member = memberDAO.findById(ali.getId()).orElseThrow();
 
-            List<String[]> importedData = dataManager.importFromCSV("library_export.csv");
-            System.out.println("Imported " + importedData.size() + " records from CSV");
+                BorrowRecord record = new BorrowRecord();
+                record.setItem(book);
+                record.setMember(member);
+                record.setBorrowDate(LocalDate.now());
+                record.setDueDate(LocalDate.now().plusDays(14));
 
-            System.out.println("\n4. BACKUP CREATION");
-            dataManager.createBackup();
-            System.out.println("Backup created successfully");
+                recordDAO.insertRecord(record);
+                itemDAO.updateAvailability(book.getId(), false);
 
-            System.out.println("\n5. FILE SEARCH WITH PATTERNS");
-            List<Path> foundFiles = dataManager.findFiles("*.txt");
-            System.out.println("Found " + foundFiles.size() + " .txt files");
+                conn.commit();
+                System.out.println("Borrow transaction committed successfully");
 
-            System.out.println("\n6. FILE PROCESSING WITH LINES");
-            dataManager.processFileLines("library_export.csv", line -> {
-                if (!line.startsWith("ID")) {
-                    System.out.println("CSV Record: " + line);
+            } catch (SQLException e) {
+                conn.rollback();
+                System.out.println("Transaction rolled back: " + e.getMessage());
+            } finally {
+                conn.setAutoCommit(true);
+            }
+
+            System.out.println("\n8. FINDING ACTIVE BORROW RECORDS");
+            List<BorrowRecord> activeRecords = recordDAO.findActiveRecords();
+            System.out.println("Active borrows: " + activeRecords.size());
+
+            System.out.println("\n9. RETURNING ITEM");
+            boolean returned = recordDAO.returnItem(effectiveJava.getId(), LocalDate.now());
+            System.out.println("Item returned: " + returned);
+
+            System.out.println("\n10. PREPARED STATEMENT EXAMPLE");
+            String searchSql = "SELECT * FROM items WHERE title LIKE ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(searchSql)) {
+                pstmt.setString(1, "%Java%");
+
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    System.out.println("Items with 'Java' in title:");
+                    while (rs.next()) {
+                        System.out.println("  - " + rs.getString("title"));
+                    }
                 }
-            });
-
-            System.out.println("\n7. NIO.2 FEATURES");
-            Path testPath = Path.of("library_data/test_nio.txt");
-
-            Files.writeString(testPath, "Test content with NIO.2");
-            System.out.println("File written with NIO.2");
-
-            String content = Files.readString(testPath);
-            System.out.println("Read content: " + content);
-
-            BasicFileAttributes attrs = Files.readAttributes(testPath, BasicFileAttributes.class);
-            System.out.println("File size: " + attrs.size() + " bytes");
-            System.out.println("Creation time: " + attrs.creationTime());
-
-            Files.deleteIfExists(testPath);
-
-            System.out.println("\n8. CLEANUP");
-            for (LibraryItem item : library.getAllItems()) {
-                fileHandler.deleteItemFile(item.getId());
             }
-            Files.deleteIfExists(Path.of("library.ser"));
-            Files.deleteIfExists(Path.of("library_export.csv"));
-            System.out.println("Test files cleaned up");
 
+            System.out.println("\n11. METADATA INFORMATION");
+            DatabaseMetaData metaData = conn.getMetaData();
+            System.out.println("Database: " + metaData.getDatabaseProductName());
+            System.out.println("Version: " + metaData.getDatabaseProductVersion());
+            System.out.println("Driver: " + metaData.getDriverName());
+
+            ResultSet tables = metaData.getTables(null, null, "%", new String[]{"TABLE"});
+            System.out.println("\nTables in database:");
+            while (tables.next()) {
+                System.out.println("  - " + tables.getString("TABLE_NAME"));
+            }
+
+            System.out.println("\n12. CLEANUP - DELETING TEST DATA");
+            try (Statement stmt = dbManager.getConnection().createStatement()) {
+                int deletedRecords = stmt.executeUpdate("DELETE FROM borrow_records");
+                System.out.println("Deleted " + deletedRecords + " borrow records");
+            } catch (SQLException e) {
+                System.out.println("Error deleting borrow records: " + e.getMessage());
+            }
+
+            for (LibraryItem item : library.getAllItems()) {
+                itemDAO.deleteItem(item.getId());
+            }
+            memberDAO.deleteMember(ali.getId());
+            System.out.println("Test data cleaned up");
+
+        } catch (SQLException e) {
+            System.err.println("Database error: " + e.getMessage());
+            e.printStackTrace();
         } catch (Exception e) {
-            System.err.println("Error during I/O operations: " + e.getMessage());
             e.printStackTrace();
         }
 
-        System.out.println("\n=== CHAPTER 14 (I/O) COMPLETED ===");
+        System.out.println("\n=== CHAPTER 15 (JDBC) COMPLETED ===");
     }
 }
