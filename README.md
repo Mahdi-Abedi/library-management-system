@@ -2,7 +2,6 @@
 
 ![Java](https://img.shields.io/badge/Java-17-007396?style=for-the-badge&logo=java&logoColor=white)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=for-the-badge)
-![Progress](https://img.shields.io/badge/Progress-Chapter%205%2F15-4CAF50?style=for-the-badge)
 
 # Library Management System — Java SE 17 OCP Practice Project
 
