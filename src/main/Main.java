@@ -1,129 +1,132 @@
 package main;
 
 import entities.Library;
-import entities.items.Book;
-import entities.items.LibraryItem;
+import entities.items.*;
 import entities.people.Member;
-import services.AsyncLibraryService;
-import services.BorrowingService;
-import services.LibraryTaskExecutor;
+import enums.MemberStatus;
+import enums.MovieGenre;
+import io.FileHandler;
+import io.LibraryDataManager;
+import io.SerializationHandler;
 
-import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class Main {
-    public static void main(String[] args) throws InterruptedException {
-        System.out.println("\n=== CHAPTER 13: CONCURRENCY ===\n");
+    public static void main(String[] args) {
+        System.out.println("=== LIBRARY MANAGEMENT SYSTEM - CHAPTER 14 DEMO ===\n");
 
-        System.out.println("1. THREAD-SAFE LIBRARY OPERATIONS");
         Library library = new Library();
-        LibraryTaskExecutor executor = new LibraryTaskExecutor(library);
 
-        for (int i = 0; i < 10; i++) {
-            Book book = new Book.Builder("ISBN-" + i, "Book " + i, "Author " + i)
-                    .setPageCount(100 + i * 10)
-                    .build();
-            library.addItem(book);
-        }
+        Book effectiveJava = new Book.Builder("978-0134685991", "Effective Java", "Joshua Bloch")
+                .setPublicationYear(2018)
+                .setPageCount(416)
+                .build();
 
-        System.out.println("\n2. PARALLEL STREAM PROCESSING");
-        List<LibraryItem> items = library.getAllItems();
-        CompletableFuture<List<LibraryItem>> processedFuture = executor.processItemsAsync(items);
+        Book cleanCode = new Book.Builder("978-0132350884", "Clean Code", "Robert Martin")
+                .setPublicationYear(2008)
+                .setPageCount(464)
+                .build();
 
-        processedFuture.thenAccept(processedItems -> {
-            System.out.println("Processed " + processedItems.size() + " items in parallel");
-        }).join();
+        Magazine javaMag = new Magazine("JAVA-2024-01", "Java Monthly", LocalDate.of(2024, 1, 15));
+        javaMag.setPublisher("Java Publications Inc.");
 
-        System.out.println("\n3. COMPLETABLE FUTURE DEMONSTRATION");
-        AsyncLibraryService asyncService = new AsyncLibraryService(library);
+        DVD designPatterns = new DVD("DVD-001", "Java Design Patterns", "John Doe");
+        designPatterns.setDurationMinutes(120);
+        designPatterns.setGenre(MovieGenre.EDUCATIONAL);
 
-        CompletableFuture<String> reportFuture = asyncService.generateReportAsync();
-        CompletableFuture<Void> maintenanceFuture = asyncService.performMaintenanceAsync();
+        ReferenceBook javaSpec = new ReferenceBook("REF-001", "Java Language Specification", "Programming Languages");
 
-        reportFuture.thenCombine(maintenanceFuture, (report, ignored) -> {
-            System.out.println("Report generated during maintenance");
-            return report.substring(0, Math.min(100, report.length()));
-        }).thenAccept(partialReport -> {
-            System.out.println("Partial report: " + partialReport + "...");
-        }).join();
+        library.addItem(effectiveJava);
+        library.addItem(cleanCode);
+        library.addItem(javaMag);
+        library.addItem(designPatterns);
+        library.addItem(javaSpec);
 
-        System.out.println("\n4. MULTI-THREAD BORROW SIMULATION");
-        Member testMember = new Member(999, "Test User", "test@example.com");
-        library.addMember(testMember);
+        Member ali = new Member(101, "Ali Rezaei", "ali@example.com");
+        ali.setStatus(MemberStatus.ACTIVE);
+        library.addMember(ali);
 
-        List<CompletableFuture<Boolean>> borrowFutures = new ArrayList<>();
-        for (int i = 0; i < 5; i++) {
-            final int index = i;
-            borrowFutures.add(CompletableFuture.supplyAsync(() -> {
-                String itemId = "ISBN-" + index;
-                var result = library.borrowItem(itemId, testMember);
-                System.out.println(Thread.currentThread().getName() +
-                        " borrowed ISBN-" + index + ": " + result.isSuccess());
-                return result.isSuccess();
-            }));
-        }
+        try {
+            System.out.println("1. FILE HANDLER DEMONSTRATION");
+            FileHandler fileHandler = new FileHandler("library_data");
 
-        CompletableFuture.allOf(borrowFutures.toArray(new CompletableFuture[0])).join();
-        System.out.println("All borrow operations completed");
+            for (LibraryItem item : library.getAllItems()) {
+                fileHandler.saveItem(item);
+                System.out.println("Saved: " + item.getId() + ".txt");
+            }
 
-        System.out.println("\n5. SCHEDULED TASKS");
-        executor.scheduleOverdueCheck(2, 5, TimeUnit.SECONDS);
+            List<String> itemData = fileHandler.readItem(effectiveJava.getId());
+            System.out.println("\nItem data for " + effectiveJava.getId() + ":");
+            itemData.forEach(line -> System.out.println("  " + line));
 
-        System.out.println("\n6. THREAD SYNCHRONIZATION TEST");
-        BorrowingService borrowingService = library.getBorrowingService();
-        List<Thread> threads = new ArrayList<>();
+            List<Path> itemFiles = fileHandler.listAllItemFiles();
+            System.out.println("\nTotal item files: " + itemFiles.size());
 
-        for (int i = 0; i < 3; i++) {
-            Thread thread = new Thread(() -> {
-                for (int j = 0; j < 3; j++) {
-                    try {
-                        var records = borrowingService.getActiveBorrows();
-                        System.out.println(Thread.currentThread().getName() +
-                                " read " + records.size() + " records");
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                }
-            }, "Reader-" + i);
-            threads.add(thread);
-            thread.start();
-        }
+            System.out.println("\n2. SERIALIZATION DEMONSTRATION");
+            SerializationHandler serialHandler = new SerializationHandler();
 
-        for (Thread thread : threads) {
-            thread.join();
-        }
+            serialHandler.serializeLibrary(library, "library.ser");
+            System.out.println("Library serialized to library.ser");
 
-        System.out.println("\n7. ATOMIC OPERATIONS");
-        System.out.println("Creating atomic counter...");
-        AtomicInteger counter = new AtomicInteger(0);
+            Library deserializedLib = serialHandler.deserializeLibrary("library.ser");
+            System.out.println("Library deserialized with " + deserializedLib.getAllItems().size() + " items");
 
-        List<Thread> counterThreads = new ArrayList<>();
-        for (int i = 0; i < 5; i++) {
-            Thread thread = new Thread(() -> {
-                for (int j = 0; j < 1000; j++) {
-                    counter.incrementAndGet();
+            System.out.println("\n3. CSV EXPORT/IMPORT");
+            LibraryDataManager dataManager = new LibraryDataManager("library_data");
+
+            dataManager.exportToCSV(library, "library_export.csv");
+            System.out.println("Library exported to library_export.csv");
+
+            List<String[]> importedData = dataManager.importFromCSV("library_export.csv");
+            System.out.println("Imported " + importedData.size() + " records from CSV");
+
+            System.out.println("\n4. BACKUP CREATION");
+            dataManager.createBackup();
+            System.out.println("Backup created successfully");
+
+            System.out.println("\n5. FILE SEARCH WITH PATTERNS");
+            List<Path> foundFiles = dataManager.findFiles("*.txt");
+            System.out.println("Found " + foundFiles.size() + " .txt files");
+
+            System.out.println("\n6. FILE PROCESSING WITH LINES");
+            dataManager.processFileLines("library_export.csv", line -> {
+                if (!line.startsWith("ID")) {
+                    System.out.println("CSV Record: " + line);
                 }
             });
-            counterThreads.add(thread);
-            thread.start();
+
+            System.out.println("\n7. NIO.2 FEATURES");
+            Path testPath = Path.of("library_data/test_nio.txt");
+
+            Files.writeString(testPath, "Test content with NIO.2");
+            System.out.println("File written with NIO.2");
+
+            String content = Files.readString(testPath);
+            System.out.println("Read content: " + content);
+
+            BasicFileAttributes attrs = Files.readAttributes(testPath, BasicFileAttributes.class);
+            System.out.println("File size: " + attrs.size() + " bytes");
+            System.out.println("Creation time: " + attrs.creationTime());
+
+            Files.deleteIfExists(testPath);
+
+            System.out.println("\n8. CLEANUP");
+            for (LibraryItem item : library.getAllItems()) {
+                fileHandler.deleteItemFile(item.getId());
+            }
+            Files.deleteIfExists(Path.of("library.ser"));
+            Files.deleteIfExists(Path.of("library_export.csv"));
+            System.out.println("Test files cleaned up");
+
+        } catch (Exception e) {
+            System.err.println("Error during I/O operations: " + e.getMessage());
+            e.printStackTrace();
         }
 
-        for (Thread thread : counterThreads) {
-            thread.join();
-        }
-
-        System.out.println("Final counter value: " + counter.get() + " (expected: 5000)");
-
-        System.out.println("\n8. EXECUTOR SHUTDOWN");
-        executor.shutdown();
-        System.out.println("Executor service shutdown completed");
-
-        System.out.println("\n=== CONCURRENCY DEMONSTRATION COMPLETED ===");
-        System.out.println("All thread-safe operations verified");
-        System.out.println("No data races or deadlocks detected");
+        System.out.println("\n=== CHAPTER 14 (I/O) COMPLETED ===");
     }
 }

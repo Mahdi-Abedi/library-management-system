@@ -12,6 +12,7 @@ module library.management.system {
     requires java.base;
     requires java.sql;
     requires java.logging;
+    requires java.desktop;
 
     opens entities to java.base;
     opens entities.items to java.base;

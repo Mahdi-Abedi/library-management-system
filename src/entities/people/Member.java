@@ -2,9 +2,12 @@ package entities.people;
 
 import enums.MemberStatus;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 
-public class Member {
+public class Member implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private final int id;
     private String name;
     private String email;

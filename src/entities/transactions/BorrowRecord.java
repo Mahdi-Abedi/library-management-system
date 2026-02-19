@@ -3,12 +3,14 @@ package entities.transactions;
 import entities.items.LibraryItem;
 import entities.people.Member;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.Objects;
 
-public class BorrowRecord {
+public class BorrowRecord implements Serializable {
+    private static final long serialVersionUID = 1L;
     private LibraryItem item;
     private Member member;
     private LocalDate borrowDate;

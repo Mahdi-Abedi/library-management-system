@@ -12,6 +12,7 @@ import exceptions.ItemNotFoundException;
 import interfaces.LoanPolicy;
 import services.BorrowingService;
 
+import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,9 +24,10 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class Library {
+public class Library implements Serializable {
+    private static final long serialVersionUID = 1L;
 
-    private final BorrowingService borrowingService;
+    private final transient BorrowingService borrowingService;
 
     private final static int MAX_REPORT_ITEMS = 5;
 
@@ -128,18 +130,91 @@ public class Library {
     }
 
     public List<LibraryItem> findItems(Predicate<LibraryItem> predicate) {
-        return items.stream().filter(predicate).toList();
-    }
-
-    public List<LibraryItem> filterItems(Predicate<LibraryItem> predicate) {
-        return items.stream().filter(predicate).toList();
+        if (predicate == null) {
+            throw new IllegalArgumentException("Predicate cannot be null");
+        }
+        return items.stream()
+                .filter(item -> item != null && predicate.test(item))
+                .toList();
     }
 
     public List<LibraryItem> searchItemsWithMethodRef(String keyword) {
-        return items.stream()
-                .filter(item -> containsKeyword(item, keyword))
-                .toList();
+        // Check if keyword is null/empty after trimming or items collection is null
+        if (keyword == null || keyword.trim().isEmpty() || items == null) {
+            return Collections.emptyList();
+        }
+
+        // Create trimmed keyword once to avoid repeated trimming in containsKeyword method
+        String trimmedKeyword = keyword.trim();
+
+        // Enhanced validation to prevent potential security issues
+        if (!isValidSearchKeyword(trimmedKeyword) || hasDangerousPatterns(trimmedKeyword)) {
+            return Collections.emptyList();
+        }
+
+        try {
+            return items.stream()
+                    .filter(Objects::nonNull)  // Filter out null items first
+                    .filter(item -> safeContainsKeyword(item, trimmedKeyword))  // Apply keyword filter with safe exception handling
+                    .collect(Collectors.toUnmodifiableList());  // Collect to unmodifiable list
+        } catch (UnsupportedOperationException | NullPointerException e) {
+            // Log the specific error for debugging
+            System.err.println("Error during stream processing: " + e.getMessage());
+            return Collections.emptyList();
+        }
     }
+
+    private boolean isValidSearchKeyword(String keyword) {
+        if (keyword == null) {
+            return false;
+        }
+
+        // Add length validation to prevent extremely long searches
+        if (keyword.length() > 100) {
+            return false;
+        }
+
+        // Basic alphanumeric and space validation
+        return keyword.matches("^[a-zA-Z0-9\\s\\-_.,!?]*$");
+    }
+
+    private boolean hasDangerousPatterns(String keyword) {
+        if (keyword == null) {
+            return false;
+        }
+
+        // Check for common dangerous patterns
+        String[] dangerousPatterns = {
+                "<script", "javascript:", "vbscript:", "onerror=", "onclick=",
+                "eval\\(", "expression\\(", "<iframe", "<object", "<embed",
+                "\\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\\b"
+        };
+
+        String lowerKeyword = keyword.toLowerCase();
+        for (String pattern : dangerousPatterns) {
+            if (lowerKeyword.contains(pattern.toLowerCase())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean safeContainsKeyword(LibraryItem item, String keyword) {
+        try {
+            return containsKeyword(item, keyword);
+        } catch (NullPointerException e) {
+            // Log the error with context but continue processing other items
+            System.err.println("Null pointer encountered when checking keyword for item: " +
+                    (item != null ? item.getTitle() : "null item"));
+            return false;
+        } catch (Exception e) {
+            // Log the error with context but continue processing other items
+            System.err.println("Unexpected error when checking keyword for item: " + e.getMessage());
+            return false;
+        }
+    }
+
 
     private boolean containsKeyword(LibraryItem item, String keyword) {
         return item.getTitle().toLowerCase().contains(keyword.toLowerCase());

@@ -4,7 +4,10 @@ import enums.ItemStatus;
 import enums.LibraryItemType;
 import interfaces.LoanPolicy;
 
-public abstract sealed class LibraryItem permits Book, Magazine, DVD, ReferenceBook, AudioBook {
+import java.io.Serializable;
+
+public abstract sealed class LibraryItem implements Serializable permits Book, Magazine, DVD, ReferenceBook, AudioBook {
+    private static final long serialVersionUID = 1L;
 
     protected boolean available;
     private final String id;
