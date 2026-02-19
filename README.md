@@ -4,283 +4,170 @@
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=for-the-badge)
 ![Progress](https://img.shields.io/badge/Progress-Chapter%205%2F15-4CAF50?style=for-the-badge)
 
-A comprehensive **Library Management System** built with **Java 17** as part of the OCP Java SE 17 certification study. This project demonstrates modern Java features, clean architecture, and professional software development practices.
+# Library Management System — Java SE 17 OCP Practice Project
 
-## **🎯 Project Overview**
-
-This system provides complete library management capabilities including book cataloging, member management, borrowing/returning operations, and reporting. Built following the **OCP Java SE 17 Developer Study Guide** structure, with each chapter adding new features and improvements.
-
-## **🚀 Features**
-
-### **📖 Book Management**
-- Add, update, remove books with ISBN validation
-- Search by title, author, ISBN, or keywords
-- Track book status (Available, Borrowed, Reserved)
-- Manage book details (publication year, page count)
-
-### **👥 Member Management**
-- Register and manage library members
-- Member status tracking (Active, Suspended, Inactive)
-- Membership dates and contact information
-- Borrowing history
-
-### **🔄 Borrowing System**
-- Complete borrow/return transactions
-- Automated due date calculation
-- Overdue detection and fine calculation
-- Multiple borrowing period options
-- Batch operations for multiple books
-
-### **📊 Reporting & Analytics**
-- Detailed library statistics
-- Overdue books tracking
-- Available books listing
-- Custom report generation
-
-## **🏗️ Architecture**
-
-### **Package Structure**
-```
-src/
-├── entities/               # Core domain entities
-│   ├── Book.java           # Book entity with ISBN-based equality
-│   ├── Member.java         # Library member with status tracking
-│   ├── Library.java        # Main library management class
-│   ├── BorrowRecord.java   # Track borrow/return transactions
-│   └── LibraryStatistics.java # Data class for library stats
-├── enums/                  # Enumeration types
-│   ├── BookStatus.java     # AVAILABLE, BORROWED, RESERVED
-│   └── MemberStatus.java   # ACTIVE, SUSPENDED, INACTIVE
-└── Main.java              # Application entry point
-```
-
-### **Core Classes**
-
-#### **📘 Book Entity**
-- Immutable ISBN (setter removed after creation)
-- Automatic status management
-- Proper `equals()` and `hashCode()` based on ISBN
-- Formatted `toString()` with StringBuilder
-
-#### **👤 Member Entity**
-- Final ID for consistency
-- Default membership date and status
-- Contact information management
-- Builder pattern support
-
-#### **🏛️ Library Class**
-- Thread-safe collection management
-- Advanced search capabilities
-- Batch operations support
-- Comprehensive reporting
-
-#### **📝 BorrowRecord**
-- Date calculations with DateTime API
-- Overdue detection and fine calculation
-- Configurable borrowing periods
-- Formatted transaction history
-
-## **💻 Technical Highlights**
-
-### **Java 17 Features Used**
-- **Records**: `LibraryStatistics` for data carrier classes
-- **Pattern Matching**: Future implementation planned
-- **Sealed Classes**: Architecture ready for implementation
-- **Text Blocks**: Readable string formatting
-
-### **Modern Java APIs**
-- **DateTime API**: Precise date calculations with `LocalDate`, `ChronoUnit`
-- **Optional**: Null-safe returns replacing traditional null checks
-- **Stream API**: Functional data processing and filtering
-- **StringBuilder**: Efficient string concatenation
-
-### **Design Patterns**
-- **Builder Pattern**: For complex object creation
-- **Factory Pattern**: Planned for object creation
-- **Strategy Pattern**: For fine calculation algorithms
-- **Observer Pattern**: For event notifications (planned)
-
-## **📚 Learning Journey**
-
-Following **OCP Java SE 17 Developer Study Guide**:
-
-### **✅ Completed Chapters**
-| Chapter | Topic | Status | Key Implementation |
-|---------|-------|--------|-------------------|
-| 1-3 | Building Blocks, Operators, Decisions | ✅ Complete | Core entities, basic operations |
-| 4 | Core APIs | ✅ Complete | DateTime API, StringBuilder, Collections |
-| 5 | Methods | ✅ Complete | Method overloading, Optional, Varargs |
-
-### **🔜 Upcoming Chapters**
-| Chapter | Topic | Status | Planned Features |
-|---------|-------|--------|-----------------|
-| 6 | Class Design | ⏳ Next | Inheritance, Interfaces, Abstract Classes |
-| 7 | Beyond Classes | ⏳ Planned | Records, Sealed Classes, Enums |
-| 8 | Lambdas | ⏳ Planned | Functional programming |
-| 9-10 | Collections & Streams | ⏳ Planned | Advanced data processing |
-| 11-15 | Advanced Topics | ⏳ Planned | Concurrency, JDBC, Modules |
-
-## **🚀 Getting Started**
-
-### **Prerequisites**
-- Java 17 or higher
-- Git (for version control)
-- IDE (IntelliJ IDEA, Eclipse, or VS Code)
-
-### **Installation**
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/library-management-system.git
-
-# Navigate to project directory
-cd library-management-system
-
-# Compile the project
-javac -d out src/**/*.java
-
-# Run the application
-java -cp out Main
-```
-
-### **Using Maven**
-```xml
-<!-- pom.xml -->
-<project>
-    <modelVersion>4.0.0</modelVersion>
-    <groupId>com.library</groupId>
-    <artifactId>library-system</artifactId>
-    <version>1.0.0</version>
-    
-    <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
-    </properties>
-</project>
-```
-
-## **📖 Usage Examples**
-
-### **Basic Operations**
-```java
-// Create library
-Library library = new Library();
-
-// Add books
-library.addBook(new Book("978-0134685991", "Effective Java", "Joshua Bloch"));
-
-// Register member
-Member member = new Member(101, "John Doe", "john@example.com");
-library.addMember(member);
-
-// Borrow book
-BorrowRecord record = library.borrowBook("978-0134685991", member);
-
-// Generate report
-System.out.println(library.generateLibraryReport());
-```
-
-### **Advanced Features**
-```java
-// Batch operations
-library.borrowMultipleBooks(member, "ISBN1", "ISBN2", "ISBN3");
-
-// Custom borrow period
-library.borrowBook("978-0134685991", member, 21); // 21 days
-
-// Optional for safe operations
-Optional<Book> book = library.findBookByIsbnOptional("978-0134685991");
-book.ifPresentOrElse(
-    b -> System.out.println("Found: " + b.getTitle()),
-    () -> System.out.println("Book not found")
-);
-```
-
-## **🧪 Testing**
-
-### **Running Tests**
-```bash
-# JUnit tests (planned)
-mvn test
-
-# Specific test class
-mvn test -Dtest=LibraryTest
-```
-
-### **Test Coverage**
-- Unit tests for all entities
-- Integration tests for library operations
-- Edge case testing for date calculations
-- Performance testing for large datasets
-
-## **🤝 Contributing**
-
-This is a learning project following the OCP certification path. Contributions are welcome as educational examples:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes following conventional commits
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### **Commit Convention**
-```
-feat: add new feature
-fix: bug correction
-docs: documentation changes
-refactor: code restructuring
-test: adding tests
-chore: maintenance tasks
-```
-
-## **📈 Project Roadmap**
-
-### **Phase 1: Core Implementation** ✅
-- Basic CRUD operations
-- Entity relationships
-- Basic validation
-
-### **Phase 2: Advanced Features** 🔄
-- Database integration (JDBC)
-- Web interface (Spring Boot)
-- Authentication system
-- Advanced reporting
-
-### **Phase 3: Production Ready** ⏳
-- Performance optimization
-- Security enhancements
-- Docker deployment
-- CI/CD pipeline
-
-## **📄 License**
-
-Copyright 2024 Your Name
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-## **🙏 Acknowledgments**
-
-- **Oracle** for the OCP Java SE 17 certification program
-- **Scott Selikoff & Jeanne Boyarsky** for the study guide
-- Java community for best practices and patterns
-- All contributors who help improve this learning project
-
-## **📬 Contact**
-
-Project Link: [https://github.com/yourusername/library-management-system](https://github.com/yourusername/library-management-system)
+A comprehensive, modular library management system developed as a hands-on project to master the **Oracle Certified
+Professional Java SE 17 Developer (1Z0-829)** exam topics.  
+Every chapter of the official study guide is reflected in the code, demonstrating real‑world usage of modern Java
+features.
 
 ---
 
-**⭐ If you find this project helpful, please give it a star!**
+## 📚 Table of Contents
+
+- [Overview](#overview)
+- [Prerequisites](#prerequisites)
+- [How to Run](#how-to-run)
+    - [Using IntelliJ IDEA](#using-intellij-idea)
+    - [From Command Line](#from-command-line)
+- [Project Structure](#project-structure)
+- [Implemented Features by Chapter](#implemented-features-by-chapter)
+- [Key Concepts Demonstrated](#key-concepts-demonstrated)
+- [Notes](#notes)
+- [License](#license)
 
 ---
-*Built with ❤️ as part of the OCP Java SE 17 certification journey*
+
+## Overview
+
+This project simulates a real library with books, magazines, DVDs, reference books, members, and borrowing
+transactions.  
+It is intentionally built **without any frameworks** (Spring, Hibernate, etc.) to stay focused on core Java features and
+the exam objectives.
+
+The code is fully modular (Java Platform Module System), thread‑safe, and includes a complete JDBC integration with an
+H2 in‑memory database.
+
+---
+
+## Prerequisites
+
+- **Java SE 17 or higher** (tested with JDK 17, 21, and 25)
+- **H2 Database JAR** (provided in the `lib/`
+  folder – [download](https://repo1.maven.org/maven2/com/h2database/h2/2.2.224/h2-2.2.224.jar) if missing)
+- **IntelliJ IDEA** (recommended) or any IDE with Java support
+
+> **Note:** If you use JDK 25 (early access) and encounter module‑related issues, either switch to a stable LTS
+> release (17/21) or temporarily remove `module-info.java` and run on the classpath.
+
+---
+
+## How to Run
+
+### Using IntelliJ IDEA
+
+1. Open the project in IntelliJ.
+2. Ensure the H2 JAR is added as a library:
+    - **File → Project Structure → Libraries** → `+` → **Java** → select `lib/h2-2.2.224.jar`
+3. Run the `main.Main` class.
+
+### From Command Line
+
+#### Modular Execution (with `module-info.java`)
+```bash
+# Compile
+javac -d out --module-source-path src -cp "lib/h2-2.2.224.jar" $(find src -name "*.java")
+
+# Run
+java --module-path out:lib/h2-2.2.224.jar -m library.management.system/main.Main
+```
+
+#### Non‑modular Execution (if you remove module-info.java)
+
+# Compile
+
+javac -cp "lib/h2-2.2.224.jar" -d out src/**/*.java
+
+# Run (Windows)
+
+java -cp "out;lib/h2-2.2.224.jar" main.Main
+
+# Run (Linux/macOS)
+
+java -cp "out:lib/h2-2.2.224.jar" main.Main
+
+# Project Structure
+
+library-management-system/
+├── src/
+│ ├── main/
+│ │ └── Main.java # Entry point – demonstrates all chapters
+│ ├── entities/ # Core domain classes
+│ │ ├── items/ # Sealed hierarchy (LibraryItem, Book, Magazine, DVD, ReferenceBook, AudioBook)
+│ │ ├── people/ # Member
+│ │ └── transactions/ # BorrowRecord, Reservation
+│ ├── enums/ # LibraryItemType, MemberStatus, MovieGenre, ItemStatus
+│ ├── exceptions/ # Custom exceptions (BorrowException, ItemNotAvailableException, …)
+│ ├── interfaces/ # LoanPolicy, ReservationPolicy, ReportGenerator
+│ ├── services/ # BorrowingService, LocalizationService, LibraryTaskExecutor, …
+│ ├── jdbc/ # DAO classes (ItemDAO, MemberDAO, BorrowRecordDAO) + DatabaseManager
+│ ├── io/ # FileHandler, SerializationHandler, LibraryDataManager, FileWatcher
+│ └── module-info.java # Module descriptor
+├── lib/ # External JARs (H2 database driver)
+├── resources/ # Resource bundles for localization (messages_*.properties)
+├── library_data/ # Runtime folder for I/O operations (created automatically)
+├── out/ # Compiled classes (generated)
+├── .gitignore
+├── LICENSE
+└── README.md
+
+## Implemented Features by Chapter
+
+| Chapter | Topic                           | Implementation Highlights                                                                                                  |
+|---------|---------------------------------|----------------------------------------------------------------------------------------------------------------------------|
+| 1–6     | Basics, OOP, Class Design       | Sealed classes (`LibraryItem`), records (`LibraryStatistics`), enums with fields/methods, nested/inner classes             |
+| 7       | Beyond Classes                  | Sealed hierarchy, `LibraryStatistics` record, enhanced enums (`MovieGenre` with age rating)                                |
+| 8       | Lambdas & Functional Interfaces | Custom `Predicate<LibraryItem>`, `Consumer<LibraryItem>`, `Function<LibraryItem,R>`; method references                     |
+| 9       | Collections & Generics          | Generic methods (`getItemsByType`, `findItemByTypeAndId`), `EnumMap`, `groupingBy`, `partitioningBy`, wildcards            |
+| 10      | Streams                         | Extensive stream pipelines, parallel streams, `Collectors`, `DoubleSummaryStatistics`                                      |
+| 11      | Exceptions & Localization       | Custom exception hierarchy, try‑with‑resources, multi‑catch, `LocalizationService` with EN/FA bundles                      |
+| 12      | Modules                         | `module-info.java` with exports/requires/uses/provides, `ServiceLoader` demo                                               |
+| 13      | Concurrency                     | Thread‑safe collections (`CopyOnWriteArrayList`), `ExecutorService`, `CompletableFuture`, `ReentrantLock`, atomic counters |
+| 14      | I/O                             | File handling (`FileHandler`), object serialization (`SerializationHandler`), CSV export/import, NIO.2, file watching      |
+| 15      | JDBC                            | H2 in‑memory database, DAO pattern, transactions, metadata, prepared statements                                            |
+
+# Key Concepts Demonstrated
+
+    Sealed Classes – LibraryItem permits only specific subclasses.
+
+    Records – LibraryStatistics as an immutable data carrier.
+
+    Enhanced Enums – LibraryItemType with loan information, MovieGenre with age‑appropriateness logic.
+
+    Functional Interfaces – Using Predicate, Consumer, Function instead of custom ones.
+
+    Stream API – Filtering, mapping, grouping, partitioning, parallel processing.
+
+    Generics – Type‑safe methods, wildcards (? extends, ? super).
+
+    Concurrency – Thread safety, CompletableFuture, ExecutorService, locks, atomic variables.
+
+    Exception Handling – Custom checked/unchecked exceptions, multi‑catch, suppressed exceptions.
+
+    Localization – Resource bundles for English and Persian.
+
+    I/O (NIO.2) – Path, Files, BufferedReader, WatchService.
+
+    JDBC – Connection management, DAO, transactions, metadata.
+
+    Modules (JPMS) – Explicit module descriptors, service loading.
+
+# Notes
+
+    The project is learning‑oriented and deliberately avoids external frameworks.
+
+    All code is compatible with Java SE 17 and covers the exam objectives.
+
+    H2 is used as an in‑memory database – no installation required.
+
+    File I/O writes to the library_data/ folder (created automatically).
+
+    If you encounter module path issues with JDK 25, use a stable JDK 17/21 or run in non‑modular mode.
+
+# License
+
+This project is for educational purposes only. Feel free to use, modify, and learn from it.
+
+# Happy Coding!
+
+A complete Java SE 17 OCP practice project – from the basics to the database.
