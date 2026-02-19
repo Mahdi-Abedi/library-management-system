@@ -35,7 +35,7 @@ public class Main {
     public static void main(String[] args) {
         System.out.println("=== LIBRARY MANAGEMENT SYSTEM - COMPLETE DEMO ===\n");
 
-        // ==================== 1. ایجاد کتابخانه و آیتم‌ها ====================
+        // ==================== 1. CREATING LIBRARY AND ITEMS  ====================
         System.out.println("1. CREATING LIBRARY AND ITEMS");
         Library library = new Library();
 

@@ -88,28 +88,31 @@ java -cp "out:lib/h2-2.2.224.jar" main.Main
 
 # Project Structure
 
+```
+library-management-system/
 library-management-system/
 ├── src/
-│ ├── main/
-│ │ └── Main.java # Entry point – demonstrates all chapters
-│ ├── entities/ # Core domain classes
-│ │ ├── items/ # Sealed hierarchy (LibraryItem, Book, Magazine, DVD, ReferenceBook, AudioBook)
-│ │ ├── people/ # Member
-│ │ └── transactions/ # BorrowRecord, Reservation
-│ ├── enums/ # LibraryItemType, MemberStatus, MovieGenre, ItemStatus
-│ ├── exceptions/ # Custom exceptions (BorrowException, ItemNotAvailableException, …)
-│ ├── interfaces/ # LoanPolicy, ReservationPolicy, ReportGenerator
-│ ├── services/ # BorrowingService, LocalizationService, LibraryTaskExecutor, …
-│ ├── jdbc/ # DAO classes (ItemDAO, MemberDAO, BorrowRecordDAO) + DatabaseManager
-│ ├── io/ # FileHandler, SerializationHandler, LibraryDataManager, FileWatcher
-│ └── module-info.java # Module descriptor
-├── lib/ # External JARs (H2 database driver)
-├── resources/ # Resource bundles for localization (messages_*.properties)
-├── library_data/ # Runtime folder for I/O operations (created automatically)
-├── out/ # Compiled classes (generated)
+│   ├── main/
+│   │   └── Main.java                     # Entry point – demonstrates all chapters
+│   ├── entities/                          # Core domain classes
+│   │   ├── items/                          # Sealed hierarchy (LibraryItem, Book, Magazine, DVD, ReferenceBook, AudioBook)
+│   │   ├── people/                          # Member
+│   │   └── transactions/                     # BorrowRecord, Reservation
+│   ├── enums/                              # LibraryItemType, MemberStatus, MovieGenre, ItemStatus
+│   ├── exceptions/                          # Custom exceptions (BorrowException, ItemNotAvailableException, …)
+│   ├── interfaces/                          # LoanPolicy, ReservationPolicy, ReportGenerator
+│   ├── services/                            # BorrowingService, LocalizationService, LibraryTaskExecutor, …
+│   ├── jdbc/                                # DAO classes (ItemDAO, MemberDAO, BorrowRecordDAO) + DatabaseManager
+│   ├── io/                                  # FileHandler, SerializationHandler, LibraryDataManager, FileWatcher
+│   └── module-info.java                     # Module descriptor
+├── lib/                                     # External JARs (H2 database driver)
+├── resources/                               # Resource bundles for localization (messages_*.properties)
+├── library_data/                            # Runtime folder for I/O operations (created automatically)
+├── out/                                     # Compiled classes (generated)
 ├── .gitignore
 ├── LICENSE
 └── README.md
+```
 
 ## Implemented Features by Chapter
 
